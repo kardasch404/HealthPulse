@@ -8,7 +8,7 @@ import { dirname } from 'path';
 
 import { connectDB } from './app/config/db.js';
 import indexRouter from './app/routes/index.js';
-import usersRouter from './app/routes/users.js';
+import apiV1Routes from './app/routes/v1/index.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -29,7 +29,7 @@ app.use(cookieParser());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.use('/', indexRouter);
-app.use('/users', usersRouter);
+app.use('/api/v1', apiV1Routes);
 
 // catch 404 and forward to error handler
 app.use(function(req, res, next) {
