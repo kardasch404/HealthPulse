@@ -9,6 +9,7 @@ import { dirname } from 'path';
 import { connectDB } from './app/config/db.js';
 import indexRouter from './app/routes/index.js';
 import apiV1Routes from './app/routes/v1/index.js';
+import { errorHandler } from './app/middlewares/errorHandler.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -36,24 +37,7 @@ app.use(function(req, res, next) {
   next(createError(404));
 });
 
-// error handler
-app.use(function(err, req, res, next) {
-  const statusCode = err.status || 500;
-  const message = err.message || 'Internal Server Error';
-  
-  // Log error in development
-  if (process.env.NODE_ENV === 'development') {
-    console.error(err);
-  }
-
-  // Send error response
-  res.status(statusCode).json({
-    success: false,
-    error: {
-      message,
-      ...(process.env.NODE_ENV === 'development' ? { stack: err.stack } : {})
-    }
-  });
-});
+// Global error handler middleware
+app.use(errorHandler);
 
 export default app;
