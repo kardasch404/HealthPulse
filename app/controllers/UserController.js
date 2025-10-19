@@ -8,14 +8,9 @@ class UserController extends BaseController {
         this.userService = userService;
     }
 
-    /**
-     * Create new user (Admin only)
-     */
     async createUser(req, res) {
-        // Validate input
+    
         const validatedData = UserValidator.validateCreateUser(req.body);
-
-        // Get requesting user from JWT token (set by authenticate middleware)
         const requestingUser = req.user;
 
         // Create user with permission check
@@ -28,29 +23,22 @@ class UserController extends BaseController {
         }, HTTP_STATUS.CREATED);
     }
 
-    /**
-     * Get all users with pagination
-     */
-    async getAllUsers(req, res) {
-        const { page, limit, role, isActive } = req.query;
 
-        const result = await this.userService.getAllUsers({
-            page: parseInt(page) || 1,
-            limit: parseInt(limit) || 10,
+    async getAllUsers(req, res) {
+        const { role, isActive } = req.query;
+
+        const users = await this.userService.getAllUsers({
             role,
             isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
         });
 
         return this.handleSuccess(res, {
             message: 'Users retrieved successfully',
-            data: result.data,
-            pagination: result.pagination
+            data: users
         });
     }
 
-    /**
-     * Get user by ID
-     */
+ 
     async getUserById(req, res) {
         const { id } = req.params;
 
@@ -62,16 +50,11 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Update user
-     */
+
     async updateUser(req, res) {
         const { id } = req.params;
         
-        // Validate input
         const validatedData = UserValidator.validateUpdateUser(req.body);
-
-        // Update user
         const user = await this.userService.updateUser(id, validatedData);
 
         return this.handleSuccess(res, {
@@ -80,9 +63,7 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Delete user (soft delete)
-     */
+   
     async deleteUser(req, res) {
         const { id } = req.params;
 
@@ -93,9 +74,7 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Activate user
-     */
+ 
     async activateUser(req, res) {
         const { id } = req.params;
 
@@ -106,9 +85,7 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Get users by role
-     */
+
     async getUsersByRole(req, res) {
         const { role } = req.params;
 

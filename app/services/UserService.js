@@ -87,12 +87,10 @@ class UserService extends BaseService {
     }
 
     /**
-     * Get all users with pagination
+     * Get all users
      */
     async getAllUsers(options = {}) {
         const {
-            page = 1,
-            limit = 10,
             role,
             isActive
         } = options;
@@ -110,13 +108,12 @@ class UserService extends BaseService {
             filters.isActive = isActive;
         }
 
-        return await this.findWithPagination({
-            filters,
-            page,
-            limit,
-            sort: { createdAt: -1 },
-            populate: 'roleId'
-        });
+        const data = await User.find(filters)
+            .select('-password')
+            .populate('roleId', 'name description')
+            .sort({ createdAt: -1 });
+
+        return data;
     }
 
     /**
