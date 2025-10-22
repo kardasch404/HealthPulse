@@ -2,9 +2,11 @@ import express from 'express';
 import UserController from '../../controllers/UserController.js';
 import UserService from '../../services/UserService.js';
 import { authenticate } from '../../middlewares/auth.js';
-import { requireAdmin } from '../../middlewares/permission.js';
-import { canCreateUserRole, canUpdateUser, canDeleteUser } from '../../middlewares/userPermissions.js';
+import { requireAdmin, requireRole } from '../../middlewares/permission.js';
+import { canUpdateUser, canDeleteUser } from '../../middlewares/userPermissions.js';
+import { canCreateAnyUser } from '../../middlewares/patientPermissions.js';
 import { catchAsync } from '../../middlewares/errorHandler.js';
+import { ROLES } from '../../constants/roles.js';
 
 const router = express.Router();
 
@@ -17,32 +19,32 @@ router.use(authenticate);
 
 /**
  * @route   POST /api/v1/users
- * @desc    Create new user (doctor, nurse, reception, or patient)
- * @access  Admin only
+ * @desc    Create new user
+ * @access  Admin can create any user, Doctor/Nurse/Reception can only create patients
  */
 router.post('/', 
-    requireAdmin,           // Check if user is admin
-    canCreateUserRole,      // Check if admin can create users
+    requireRole([ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTION]),
+    canCreateAnyUser,       // Check specific role permissions
     catchAsync((req, res) => userController.createUser(req, res))
 );
 
 /**
  * @route   GET /api/v1/users
  * @desc    Get all users with pagination and filters
- * @access  Admin only
+ * @access  Admin, Doctor, Nurse, Reception (can view patients)
  */
 router.get('/', 
-    requireAdmin,
+    requireRole([ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTION]),
     catchAsync((req, res) => userController.getAllUsers(req, res))
 );
 
 /**
  * @route   GET /api/v1/users/:id
  * @desc    Get user by ID
- * @access  Admin only
+ * @access  Admin, Doctor, Nurse, Reception (can view patient details)
  */
 router.get('/:id', 
-    requireAdmin,
+    requireRole([ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTION]),
     catchAsync((req, res) => userController.getUserById(req, res))
 );
 

@@ -1,69 +1,98 @@
 import mongoose from 'mongoose';
 
 const terminSchema = new mongoose.Schema({
-    patientId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Patient',
-        required: true
-    },
-    doctorId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    dateTime: {
-        type: Date,
-        required: true
-    },
-    duration: {
-        type: Number,
-        default: 30
-    },
-    status: {
-        type: String,
-        enum: ['pending', 'confirmed', 'cancelled', 'completed'],
-        default: 'pending'
-    },
-    type: {
-        type: String,
-        required: true
-    },
-    notes: {
-        type: String
-    },
-    cancelReason: {
-        type: String
-    },
-    createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'User',
-        required: true
-    },
-    reminderSent: {
-        type: Boolean,
-        default: false
-    }
+  patientId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',  // Changed from 'Patient' to 'User'
+    required: true
+  },
+  
+  doctorId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+
+  date: {
+    type: Date,
+    required: true
+  },
+
+  startTime: {
+    type: String,  // Format: "HH:MM" (e.g., "14:00")
+    required: true
+  },
+
+  endTime: {
+    type: String,  // Format: "HH:MM" (e.g., "14:30")
+    required: true
+  },
+  
+  duration: {
+    type: Number,
+    required: true,
+    default: 30, // minutes
+    min: 15,
+    max: 180
+  },
+  
+  status: {
+    type: String,
+    required: true,
+    enum: ['scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'],
+    default: 'scheduled'
+  },
+  
+  type: {
+    type: String,
+    required: true,
+    enum: ['consultation', 'follow-up', 'emergency', 'routine-checkup', 'surgery', 'other'],
+    default: 'consultation'
+  },
+  
+  notes: {
+    type: String,
+    trim: true
+  },
+  
+  cancelReason: {
+    type: String,
+    trim: true
+  },
+  
+  createdBy: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    required: true
+  },
+  
+  reminderSent: {
+    type: Boolean,
+    default: false
+  },
+  
+  completedAt: Date,
+  cancelledAt: Date
 }, {
-    timestamps: true
+  timestamps: true,
+  collection: 'termins'
 });
 
-terminSchema.index({ patientId: 1 });
-terminSchema.index({ doctorId: 1 });
-terminSchema.index({ dateTime: 1 });
+// Indexes for performance
+terminSchema.index({ patientId: 1, date: -1 });
+terminSchema.index({ doctorId: 1, date: 1, startTime: 1 });
+terminSchema.index({ date: 1, status: 1 });
 terminSchema.index({ status: 1 });
+terminSchema.index({ createdBy: 1 });
 
-terminSchema.pre('save', async function(next) {
-    const conflict = await mongoose.model('Termin').findOne({
-        doctorId: this.doctorId,
-        dateTime: this.dateTime,
-        status: { $ne: 'cancelled' },
-        _id: { $ne: this._id }
-    });
-    
-    if (conflict) {
-        throw new Error('Appointment conflict: Doctor already has an appointment at this time');
-    }
-    next();
+// Prevent double booking (same doctor, same date, overlapping times)
+terminSchema.index({ 
+  doctorId: 1, 
+  date: 1, 
+  startTime: 1 
+}, { 
+  unique: true,
+  partialFilterExpression: { status: { $nin: ['cancelled', 'no-show'] } }
 });
 
 const Termin = mongoose.model('Termin', terminSchema);

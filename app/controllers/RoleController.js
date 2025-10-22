@@ -10,7 +10,7 @@ class RoleController extends BaseController {
 
     async getAllRoles(req, res) {
         try {
-            // Check if user is admin
+            
             if (req.user?.role !== ROLES.ADMIN) {
                 return this.handleError(res, {
                     message: 'Unauthorized: Admin access required',

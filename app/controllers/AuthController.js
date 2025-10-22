@@ -103,7 +103,6 @@ class AuthController extends BaseController
     async logout (req, res)
     {
         try{
-            // Get userId from authenticated user (set by auth middleware)
             const userId = req.user?.userId;
             if (!userId)
             {

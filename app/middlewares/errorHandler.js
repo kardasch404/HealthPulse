@@ -6,10 +6,10 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
  * Handles all errors thrown in the application
  */
 export const errorHandler = (error, req, res, next) => {
-    // Set default values
-    let statusCode = error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
-    let message = error.message || 'Internal Server Error';
-    let errors = error.errors || null;
+  
+    let statusCode = error.statusCode ;
+    let message = error.message ;
+    let errors = error.errors;
 
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
@@ -68,10 +68,7 @@ export const errorHandler = (error, req, res, next) => {
     res.status(statusCode).json(response);
 };
 
-/**
- * Catch async errors
- * Wrapper function for async route handlers
- */
+
 export const catchAsync = (fn) => {
     return (req, res, next) => {
         Promise.resolve(fn(req, res, next)).catch(next);

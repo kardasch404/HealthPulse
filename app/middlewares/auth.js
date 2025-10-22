@@ -15,8 +15,6 @@ export const authenticate = (req, res, next) => {
 
         const token = authHeader.split(' ')[1];
         const decoded = JWTUtil.verifyAccessToken(token);
-
-        // Enhance request with user data
         req.user = {
             userId: decoded.userId,
             role: decoded.role,

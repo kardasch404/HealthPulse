@@ -26,7 +26,6 @@ class UserController extends BaseController {
 
     async getAllUsers(req, res) {
         const { role, isActive } = req.query;
-
         const users = await this.userService.getAllUsers({
             role,
             isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined

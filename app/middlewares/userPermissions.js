@@ -2,10 +2,7 @@ import { ROLES } from '../constants/roles.js';
 import { ForbiddenError } from '../utils/errors.js';
 import Logger from '../logs/Logger.js';
 
-/**
- * Check if user can create users with specific role
- * Only admin can create users with any role
- */
+
 export const canCreateUserRole = (req, res, next) => {
     try {
         const requestingUserRole = req.user?.role;
@@ -28,10 +25,7 @@ export const canCreateUserRole = (req, res, next) => {
     }
 };
 
-/**
- * Check if user can update users with specific role
- * Only admin can update users
- */
+
 export const canUpdateUser = (req, res, next) => {
     try {
         const requestingUserRole = req.user?.role;
@@ -40,7 +34,6 @@ export const canUpdateUser = (req, res, next) => {
             throw new ForbiddenError('Authentication required');
         }
 
-        // Only admin can update users
         if (requestingUserRole !== ROLES.ADMIN) {
             Logger.warn(`Unauthorized user update attempt by role: ${requestingUserRole}`);
             throw new ForbiddenError('Only administrators can update user accounts');
@@ -52,10 +45,7 @@ export const canUpdateUser = (req, res, next) => {
     }
 };
 
-/**
- * Check if user can delete users
- * Only admin can delete users
- */
+
 export const canDeleteUser = (req, res, next) => {
     try {
         const requestingUserRole = req.user?.role;
@@ -64,7 +54,6 @@ export const canDeleteUser = (req, res, next) => {
             throw new ForbiddenError('Authentication required');
         }
 
-        // Only admin can delete users
         if (requestingUserRole !== ROLES.ADMIN) {
             Logger.warn(`Unauthorized user deletion attempt by role: ${requestingUserRole}`);
             throw new ForbiddenError('Only administrators can delete user accounts');
@@ -76,10 +65,6 @@ export const canDeleteUser = (req, res, next) => {
     }
 };
 
-/**
- * More granular permission check (for future expansion)
- * Define which roles can create which roles
- */
 export const canCreateSpecificRole = (req, res, next) => {
     try {
         const requestingUserRole = req.user?.role;

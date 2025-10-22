@@ -11,13 +11,13 @@ class UserService extends BaseService {
     }
 
     /**
-     * Create new user (Admin only)
+     * Create new user
+     * Admin can create any user
+     * Doctor/Nurse/Reception can only create patients
      */
     async createUser(data, requestingUser) {
-        // Verify requesting user has admin role
-        if (requestingUser.role !== 'admin') {
-            throw new ForbiddenError('Only administrators can create user accounts');
-        }
+        const allowedToCreateAny = ['admin'];
+        const allowedToCreatePatient = ['admin', 'doctor', 'nurse', 'reception'];
 
         // Check if email already exists
         const existingUser = await User.findOne({ email: data.email });
@@ -43,13 +43,20 @@ class UserService extends BaseService {
             throw new BadRequestError('Selected role is not active');
         }
 
-        // Verify admin can create this role (additional security check)
-        const allowedRolesToCreate = ['admin', 'doctor', 'nurse', 'reception', 'patient'];
-        if (!allowedRolesToCreate.includes(role.name)) {
-            throw new ForbiddenError(`Cannot create user with role: ${role.name}`);
+        // Check permissions based on target role
+        if (role.name === 'patient') {
+            // Check if user can create patients
+            if (!allowedToCreatePatient.includes(requestingUser.role)) {
+                throw new ForbiddenError('You do not have permission to create patient accounts');
+            }
+        } else {
+            // Only admin can create non-patient users
+            if (!allowedToCreateAny.includes(requestingUser.role)) {
+                throw new ForbiddenError('Only administrators can create staff accounts');
+            }
         }
 
-        Logger.info(`Admin ${requestingUser.userId} is creating user with role ${role.name}`);
+        Logger.info(`User ${requestingUser.userId} (${requestingUser.role}) is creating user with role ${role.name}`);
 
         // Hash password
         const hashedPassword = await bcrypt.hash(data.password, 10);
@@ -65,7 +72,7 @@ class UserService extends BaseService {
             isActive: true
         });
 
-        Logger.info(`User created: ${user.email} with role ${role.name} by admin ${requestingUser.userId}`);
+        Logger.info(`User created: ${user.email} with role ${role.name} by ${requestingUser.role} ${requestingUser.userId}`);
 
         // Return user without password
         return this.getUserById(user._id);
