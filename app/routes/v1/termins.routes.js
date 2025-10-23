@@ -37,6 +37,19 @@ router.get(
 );
 
 /**
+ * GET /api/v1/termins/all
+ * Get all appointments with filters (no pagination)
+ * Query params: ?date=2025-10-20&status=scheduled&sortBy=date&sortOrder=asc
+ * Accessible by: Admin, Nurse, Reception
+ */
+router.get(
+    '/all',
+    authenticate,
+    requireRole([ROLES.ADMIN, ROLES.NURSE, ROLES.RECEPTION]),
+    catchAsync(terminController.getAllTermins.bind(terminController))
+);
+
+/**
  * POST /api/v1/termins
  * Create/book a termin
  * Accessible by: Doctor, Nurse, Reception, Patient

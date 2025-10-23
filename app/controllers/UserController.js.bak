@@ -25,15 +25,14 @@ class UserController extends BaseController {
 
 
     async getAllUsers(req, res) {
-        const { role, isActive, search } = req.query;
+        const { role, isActive } = req.query;
         const users = await this.userService.getAllUsers({
             role,
-            isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined,
-            search
+            isActive: isActive === 'true' ? true : isActive === 'false' ? false : undefined
         });
 
         return this.handleSuccess(res, {
-            message: search ? 'Search results' : 'Users retrieved successfully',
+            message: 'Users retrieved successfully',
             data: users
         });
     }
@@ -94,46 +93,6 @@ class UserController extends BaseController {
         return this.handleSuccess(res, {
             message: `${role} users retrieved successfully`,
             data: users
-        });
-    }
-
-    /**
-     * Get current authenticated user's profile
-     */
-    async getCurrentUser(req, res) {
-        const userId = req.user.userId; // From JWT token
-
-        const user = await this.userService.getUserById(userId);
-
-        return this.handleSuccess(res, {
-            message: 'Profile retrieved successfully',
-            data: user
-        });
-    }
-
-    /**
-     * Update current authenticated user's profile
-     * Users can only update their own limited fields (fname, lname, phone)
-     */
-    async updateCurrentUser(req, res) {
-        const userId = req.user.userId; // From JWT token
-        
-        // Only allow certain fields to be updated by user themselves
-        const allowedFields = ['fname', 'lname', 'phone'];
-        const updateData = {};
-        
-        for (const field of allowedFields) {
-            if (req.body[field] !== undefined) {
-                updateData[field] = req.body[field];
-            }
-        }
-
-        const validatedData = UserValidator.validateUpdateUser(updateData);
-        const user = await this.userService.updateUser(userId, validatedData);
-
-        return this.handleSuccess(res, {
-            message: 'Profile updated successfully',
-            data: user
         });
     }
 }

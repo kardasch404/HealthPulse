@@ -81,6 +81,52 @@ class TerminController {
     }
 
     /**
+     * Get all appointments with filters (no pagination)
+     * GET /api/v1/termins/all
+     */
+    async getAllTermins(req, res) {
+        const { role } = req.user;
+        
+        // Only admin, nurse, and reception can view all appointments
+        if (!['admin', 'nurse', 'reception'].includes(role)) {
+            return res.status(HTTP_STATUS.FORBIDDEN).json({
+                success: false,
+                message: 'Access denied. Insufficient permissions.'
+            });
+        }
+
+        const {
+            date,
+            status,
+            doctorId,
+            patientId,
+            type,
+            sortBy = 'date',
+            sortOrder = 'asc'
+        } = req.query;
+
+        const filters = {};
+        if (date) filters.date = date;
+        if (status) filters.status = status;
+        if (doctorId) filters.doctorId = doctorId;
+        if (patientId) filters.patientId = patientId;
+        if (type) filters.type = type;
+
+        const options = {
+            sortBy,
+            sortOrder
+        };
+
+        const termins = await this.terminService.getAllTermins(filters, options);
+
+        return res.status(HTTP_STATUS.OK).json({
+            success: true,
+            message: 'All appointments retrieved successfully',
+            data: termins
+        });
+    }
+
+    /**
      * Get termin by ID
      * GET /api/v1/termins/:id
      */

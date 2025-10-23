@@ -39,6 +39,24 @@ router.get('/',
 );
 
 /**
+ * @route   GET /api/v1/users/me
+ * @desc    Get current user's profile
+ * @access  Any authenticated user
+ */
+router.get('/me', 
+    catchAsync((req, res) => userController.getCurrentUser(req, res))
+);
+
+/**
+ * @route   PUT /api/v1/users/me
+ * @desc    Update current user's profile
+ * @access  Any authenticated user
+ */
+router.put('/me', 
+    catchAsync((req, res) => userController.updateCurrentUser(req, res))
+);
+
+/**
  * @route   GET /api/v1/users/:id
  * @desc    Get user by ID
  * @access  Admin, Doctor, Nurse, Reception (can view patient details)

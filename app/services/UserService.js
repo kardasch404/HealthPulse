@@ -99,7 +99,8 @@ class UserService extends BaseService {
     async getAllUsers(options = {}) {
         const {
             role,
-            isActive
+            isActive,
+            search
         } = options;
 
         const filters = {};
@@ -113,6 +114,16 @@ class UserService extends BaseService {
 
         if (typeof isActive !== 'undefined') {
             filters.isActive = isActive;
+        }
+
+        // Add search functionality
+        if (search) {
+            filters.$or = [
+                { email: { $regex: search, $options: 'i' } },
+                { fname: { $regex: search, $options: 'i' } },
+                { lname: { $regex: search, $options: 'i' } },
+                { phone: { $regex: search, $options: 'i' } }
+            ];
         }
 
         const data = await User.find(filters)

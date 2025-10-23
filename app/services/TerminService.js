@@ -6,6 +6,56 @@ import Logger from '../logs/Logger.js';
 
 class TerminService {
     /**
+     * Get all appointments with filters (no pagination)
+     * For admin, nurse, reception staff
+     */
+    async getAllTermins(filters = {}, options = {}) {
+        const {
+            date,
+            status,
+            doctorId,
+            patientId,
+            type
+        } = filters;
+
+        const {
+            sortBy = 'date',
+            sortOrder = 'asc'
+        } = options;
+
+        // Build query
+        const query = {};
+        
+        if (date) {
+            const searchDate = new Date(date);
+            query.date = {
+                $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
+                $lt: new Date(searchDate.setHours(23, 59, 59, 999))
+            };
+        }
+        
+        if (status) query.status = status;
+        if (doctorId) query.doctorId = doctorId;
+        if (patientId) query.patientId = patientId;
+        if (type) query.type = type;
+
+        // Sort options
+        const sortOptions = {};
+        sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
+        if (sortBy !== 'startTime') {
+            sortOptions.startTime = 1; // Secondary sort by start time
+        }
+
+        const termins = await Termin.find(query)
+            .populate('patientId', 'fname lname email phone')
+            .populate('doctorId', 'fname lname email')
+            .populate('createdBy', 'fname lname')
+            .sort(sortOptions)
+            .lean();
+
+        return termins;
+    }
+    /**
      * Get available doctors for a specific date
      * Returns doctors who have free slots on that date
      */
