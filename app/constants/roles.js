@@ -1,0 +1,43 @@
+export const ROLES = {
+    ADMIN: 'admin',
+    DOCTOR: 'doctor',
+    NURSE: 'nurse',
+    RECEPTION: 'reception',
+    PATIENT: 'patient'
+};
+
+export const PERMISSIONS = {
+    MANAGE_USERS: 'manage_users',
+    MANAGE_PATIENTS: 'manage_patients',
+    MANAGE_APPOINTMENTS: 'manage_appointments',
+    VIEW_PATIENTS: 'view_patients',
+    VIEW_APPOINTMENTS: 'view_appointments'
+};
+
+export const ROLE_PERMISSIONS = {
+    [ROLES.ADMIN]: [
+        PERMISSIONS.MANAGE_USERS,
+        PERMISSIONS.MANAGE_PATIENTS,
+        PERMISSIONS.MANAGE_APPOINTMENTS,
+        PERMISSIONS.VIEW_PATIENTS,
+        PERMISSIONS.VIEW_APPOINTMENTS
+    ],
+    [ROLES.DOCTOR]: [
+        PERMISSIONS.MANAGE_PATIENTS,
+        PERMISSIONS.MANAGE_APPOINTMENTS,
+        PERMISSIONS.VIEW_PATIENTS,
+        PERMISSIONS.VIEW_APPOINTMENTS
+    ],
+    [ROLES.NURSE]: [
+        PERMISSIONS.MANAGE_PATIENTS,
+        PERMISSIONS.VIEW_PATIENTS,
+        PERMISSIONS.VIEW_APPOINTMENTS
+    ],
+    [ROLES.RECEPTION]: [
+        PERMISSIONS.MANAGE_APPOINTMENTS,
+        PERMISSIONS.VIEW_APPOINTMENTS
+    ],
+    [ROLES.PATIENT]: [
+        PERMISSIONS.VIEW_APPOINTMENTS
+    ]
+};

@@ -1,0 +1,64 @@
+version: "3.9"
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    image: healthpulse-app:dev
+    container_name: healthpulse_app
+    env_file:
+      - ../.env
+    environment:
+      - NODE_ENV=development
+      - PORT=3000
+      - CHOKIDAR_USEPOLLING=true
+    ports:
+      - "3000:3000"
+    volumes:
+      - ../src:/app/src
+      - ../package.json:/app/package.json
+      - ../package-lock.json:/app/package-lock.json
+    command: ["npm", "run", "dev"]
+    depends_on:
+      - mongo
+      - redis
+    networks:
+      - careflow-net
+
+  mongo:
+    image: mongo:6.0
+    logging:
+      driver: "none"
+    container_name: healthpulse_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE:-healthpulse}
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - healthpulse-net
+    ports:
+      - "27017:27017"
+    command: ["mongod", "--bind_ip_all"]
+
+  redis:
+    image: redis:7-alpine
+    container_name: healthpulse_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - healthpulse-net
+
+volumes:
+  mongo_data:
+  redis_data:
+
+networks:
+  careflow-net:
+    driver: bridge

@@ -1,27 +1,31 @@
 import mongoose from 'mongoose';
+import { ROLES } from '../constants/roles.js';
 
 const roleSchema = new mongoose.Schema({
     name: {
         type: String,
         required: true,
-        enum: ["admin", "doctor", "nurse", "reception", "patient"],
+        enum: Object.values(ROLES),
         unique: true
     },
-    description : {
-        type: String,
-        required: true
+    description: {
+        type: String
     },
-    
-    isActive : {
+    permissions: {
+        type: Object,
+        default: {}
+    },
+    isActive: {
         type: Boolean,
         default: true
-    },  
-    createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-    
+    }
+}, {
+    timestamps: true
 });
+
+roleSchema.methods.hasPermission = function(resource, action) {
+    return this.permissions?.[resource]?.includes(action) || false;
+};
 
 const Role = mongoose.model('Role', roleSchema);
 

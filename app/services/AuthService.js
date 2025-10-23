@@ -55,7 +55,7 @@ class AuthService extends BaseService {
         try {
             const { email, password } = data;
             
-            const user = await User.findOne({ email }).populate('role');
+            const user = await User.findOne({ email }).populate('roleId');
             if (!user) {
                 throw new Error('User not found');
             }
@@ -65,11 +65,8 @@ class AuthService extends BaseService {
                 throw new Error('Invalid password');
             }
 
-            // Generate JWT tokens
-            const accessToken = JWTUtil.generateAccessToken(user._id, user.role.name);
+            const accessToken = JWTUtil.generateAccessToken(user._id, user.roleId.name);
             const refreshToken = JWTUtil.generateRefreshToken(user._id);
-
-            // Update last login
             user.lastLogin = new Date();
             await user.save();
 
@@ -81,7 +78,7 @@ class AuthService extends BaseService {
                     fname: user.fname,
                     lname: user.lname,
                     email: user.email,
-                    role: user.role.name
+                    role: user.roleId.name
                 }
             };
 
@@ -94,16 +91,12 @@ class AuthService extends BaseService {
     async refreshToken (refreshToken)
     {
         try {
-            // Verify the refresh token
             const decoded = JWTUtil.verifyRefreshToken(refreshToken);
             
-            // Find the user
             const user = await User.findById(decoded.userId).populate('role');
             if (!user) {
                 throw new Error('User not found');
             }
-
-            // Generate new access token
             const newAccessToken = JWTUtil.generateAccessToken(user._id, user.role.name);
 
             return {
@@ -119,7 +112,6 @@ class AuthService extends BaseService {
     async logout (userId)
     {
         try {
-            // Update last logout
             const user = await User.findById(userId);
             if (user) {
                 user.lastLogout = new Date();
