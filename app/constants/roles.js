@@ -3,7 +3,9 @@ export const ROLES = {
     DOCTOR: 'doctor',
     NURSE: 'nurse',
     RECEPTION: 'reception',
-    PATIENT: 'patient'
+    PATIENT: 'patient',
+    PHARMACIST: 'pharmacist',
+    LAB_TECHNICIAN: 'lab_technician'
 };
 
 export const PERMISSIONS = {
@@ -11,7 +13,11 @@ export const PERMISSIONS = {
     MANAGE_PATIENTS: 'manage_patients',
     MANAGE_APPOINTMENTS: 'manage_appointments',
     VIEW_PATIENTS: 'view_patients',
-    VIEW_APPOINTMENTS: 'view_appointments'
+    VIEW_APPOINTMENTS: 'view_appointments',
+    MANAGE_PHARMACIES: 'manage_pharmacies',
+    MANAGE_LABORATORIES: 'manage_laboratories',
+    VIEW_PHARMACIES: 'view_pharmacies',
+    VIEW_LABORATORIES: 'view_laboratories'
 };
 
 export const ROLE_PERMISSIONS = {
@@ -20,7 +26,11 @@ export const ROLE_PERMISSIONS = {
         PERMISSIONS.MANAGE_PATIENTS,
         PERMISSIONS.MANAGE_APPOINTMENTS,
         PERMISSIONS.VIEW_PATIENTS,
-        PERMISSIONS.VIEW_APPOINTMENTS
+        PERMISSIONS.VIEW_APPOINTMENTS,
+        PERMISSIONS.MANAGE_PHARMACIES,
+        PERMISSIONS.MANAGE_LABORATORIES,
+        PERMISSIONS.VIEW_PHARMACIES,
+        PERMISSIONS.VIEW_LABORATORIES
     ],
     [ROLES.DOCTOR]: [
         PERMISSIONS.MANAGE_PATIENTS,
@@ -39,5 +49,13 @@ export const ROLE_PERMISSIONS = {
     ],
     [ROLES.PATIENT]: [
         PERMISSIONS.VIEW_APPOINTMENTS
+    ],
+    [ROLES.PHARMACIST]: [
+        PERMISSIONS.VIEW_PHARMACIES,
+        PERMISSIONS.VIEW_PATIENTS // For prescription access
+    ],
+    [ROLES.LAB_TECHNICIAN]: [
+        PERMISSIONS.VIEW_LABORATORIES,
+        PERMISSIONS.VIEW_PATIENTS // For lab order access
     ]
 };

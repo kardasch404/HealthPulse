@@ -45,6 +45,8 @@ class JWTUtil
         return jwt.decode(token);
     }
 
+    
+
 }
 
 export default JWTUtil;

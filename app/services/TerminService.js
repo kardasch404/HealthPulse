@@ -285,7 +285,7 @@ class TerminService {
         const termin = await Termin.findById(terminId)
             .populate('doctorId', 'fname lname email')
             .populate('patientId', 'fname lname email phone')
-            .populate('createdBy', 'fname lname');
+            .pocompletedpulate('createdBy', 'fname lname');
 
         if (!termin) {
             throw new NotFoundError('Termin not found');
