@@ -46,7 +46,7 @@ const terminSchema = new mongoose.Schema({
   type: {
     type: String,
     required: true,
-    enum: ['consultation', 'follow-up', 'emergency', 'routine-checkup', 'surgery', 'other'],
+    enum: ['consultation', 'emergency'],
     default: 'consultation'
   },
   
@@ -86,13 +86,13 @@ terminSchema.index({ status: 1 });
 terminSchema.index({ createdBy: 1 });
 
 // Prevent double booking (same doctor, same date, overlapping times)
+// Note: Unique constraint applies to all appointments, handle cancellations in application logic
 terminSchema.index({ 
   doctorId: 1, 
   date: 1, 
   startTime: 1 
 }, { 
-  unique: true,
-  partialFilterExpression: { status: { $nin: ['cancelled', 'no-show'] } }
+  unique: true
 });
 
 const Termin = mongoose.model('Termin', terminSchema);

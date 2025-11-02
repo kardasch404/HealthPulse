@@ -1,338 +1,532 @@
+/**
+ * Termin Service (Appointment Service)
+ * Complete CRUD operations with conflict management
+ */
+
 import Termin from '../models/Termin.js';
 import User from '../models/User.js';
-import Role from '../models/Role.js';
-import { NotFoundError, BadRequestError, ConflictError } from '../utils/errors.js';
 import Logger from '../logs/Logger.js';
+import TerminConflictManager from '../utils/TerminConflictManager.js';
 
 class TerminService {
     /**
-     * Get all appointments with filters (no pagination)
-     * For admin, nurse, reception staff
+     * CREATE - Book a new appointment
      */
-    async getAllTermins(filters = {}, options = {}) {
-        const {
-            date,
-            status,
-            doctorId,
-            patientId,
-            type
-        } = filters;
+    static async createTermin(data) {
+        try {
+            const { patientId, doctorId, date, startTime, duration, type, notes, createdBy } = data;
 
-        const {
-            sortBy = 'date',
-            sortOrder = 'asc'
-        } = options;
+            // Calculate end time
+            const endTime = TerminConflictManager.addMinutesToTime(startTime, duration);
 
-        // Build query
-        const query = {};
-        
-        if (date) {
-            const searchDate = new Date(date);
-            query.date = {
-                $gte: new Date(searchDate.setHours(0, 0, 0, 0)),
-                $lt: new Date(searchDate.setHours(23, 59, 59, 999))
-            };
-        }
-        
-        if (status) query.status = status;
-        if (doctorId) query.doctorId = doctorId;
-        if (patientId) query.patientId = patientId;
-        if (type) query.type = type;
+            // Check doctor availability
+            const availability = await TerminConflictManager.checkDoctorAvailability(
+                doctorId,
+                new Date(date),
+                startTime,
+                endTime
+            );
 
-        // Sort options
-        const sortOptions = {};
-        sortOptions[sortBy] = sortOrder === 'desc' ? -1 : 1;
-        if (sortBy !== 'startTime') {
-            sortOptions.startTime = 1; // Secondary sort by start time
-        }
+            if (!availability.available) {
+                // Get alternative slots
+                const alternatives = await TerminConflictManager.suggestAlternativeSlots(
+                    doctorId,
+                    new Date(date),
+                    duration
+                );
 
-        const termins = await Termin.find(query)
-            .populate('patientId', 'fname lname email phone')
-            .populate('doctorId', 'fname lname email')
-            .populate('createdBy', 'fname lname')
-            .sort(sortOptions)
-            .lean();
-
-        return termins;
-    }
-    /**
-     * Get available doctors for a specific date
-     * Returns doctors who have free slots on that date
-     */
-    async getAvailableDoctors(date) {
-        // Get all active doctors
-        const doctorRole = await Role.findOne({ name: 'doctor' });
-        if (!doctorRole) {
-            throw new NotFoundError('Doctor role not found');
-        }
-
-        const doctors = await User.find({
-            roleId: doctorRole._id,
-            isActive: true
-        }).select('-password');
-
-        // For each doctor, check availability
-        const availableDoctors = [];
-
-        for (const doctor of doctors) {
-            const slots = await this.getDoctorAvailableSlots(doctor._id, date);
-            if (slots.length > 0) {
-                availableDoctors.push({
-                    doctor: {
-                        _id: doctor._id,
-                        fname: doctor.fname,
-                        lname: doctor.lname,
-                        email: doctor.email
-                    },
-                    availableSlots: slots
-                });
+                return {
+                    success: false,
+                    message: availability.reason,
+                    conflicts: availability.conflicts,
+                    alternatives
+                };
             }
-        }
 
-        return availableDoctors;
-    }
-
-    /**
-     * Get available time slots for a specific doctor on a specific date
-     * Each slot is 30 minutes, max 8 slots per day (4 hours)
-     */
-    async getDoctorAvailableSlots(doctorId, date) {
-        // Define working hours (you can make this configurable per doctor)
-        const workingHours = {
-            start: '09:00',
-            end: '17:00'  // 8 hours total work time
-        };
-
-        const slotDuration = 30; // minutes
-        const maxSlots = 8; // max appointments per day
-
-        // Get existing appointments for this doctor on this date
-        const startOfDay = new Date(date);
-        startOfDay.setHours(0, 0, 0, 0);
-        
-        const endOfDay = new Date(date);
-        endOfDay.setHours(23, 59, 59, 999);
-
-        const bookedTermins = await Termin.find({
-            doctorId,
-            date: {
-                $gte: startOfDay,
-                $lte: endOfDay
-            },
-            status: { $nin: ['cancelled', 'no-show'] }
-        }).select('startTime endTime');
-
-        // Generate all possible slots
-        const allSlots = this.generateTimeSlots(workingHours.start, workingHours.end, slotDuration, maxSlots);
-
-        // Filter out booked slots
-        const availableSlots = allSlots.filter(slot => {
-            return !this.isSlotBooked(slot, bookedTermins);
-        });
-
-        return availableSlots;
-    }
-
-    /**
-     * Generate time slots
-     */
-    generateTimeSlots(startTime, endTime, duration, maxSlots) {
-        const slots = [];
-        let [startHour, startMinute] = startTime.split(':').map(Number);
-        const [endHour, endMinute] = endTime.split(':').map(Number);
-
-        let currentMinutes = startHour * 60 + startMinute;
-        const endMinutes = endHour * 60 + endMinute;
-
-        let slotCount = 0;
-
-        while (currentMinutes < endMinutes && slotCount < maxSlots) {
-            const slotEndMinutes = currentMinutes + duration;
-            
-            if (slotEndMinutes > endMinutes) break;
-
-            const startH = Math.floor(currentMinutes / 60);
-            const startM = currentMinutes % 60;
-            const endH = Math.floor(slotEndMinutes / 60);
-            const endM = slotEndMinutes % 60;
-
-            slots.push({
-                startTime: `${String(startH).padStart(2, '0')}:${String(startM).padStart(2, '0')}`,
-                endTime: `${String(endH).padStart(2, '0')}:${String(endM).padStart(2, '0')}`
+            // Create the appointment
+            const termin = new Termin({
+                patientId,
+                doctorId,
+                date: new Date(date),
+                startTime,
+                endTime,
+                duration,
+                status: 'scheduled',
+                type: type || 'consultation',
+                notes,
+                createdBy,
+                reminderSent: false
             });
 
-            currentMinutes = slotEndMinutes;
-            slotCount++;
-        }
+            await termin.save();
 
-        return slots;
+            Logger.info('Termin created successfully', { terminId: termin._id });
+
+            return {
+                success: true,
+                message: 'Appointment booked successfully',
+                data: termin
+            };
+
+        } catch (error) {
+            Logger.error('Error creating termin', error);
+            throw error;
+        }
     }
 
     /**
-     * Check if a slot is already booked
+     * READ - Get appointment by ID
      */
-    isSlotBooked(slot, bookedTermins) {
-        return bookedTermins.some(termin => {
-            return termin.startTime === slot.startTime;
-        });
+    static async getTerminById(terminId) {
+        try {
+            const termin = await Termin.findById(terminId)
+                .populate('patientId', 'fname lname email phone')
+                .populate('doctorId', 'fname lname email specialization')
+                .populate('createdBy', 'fname lname');
+
+            if (!termin) {
+                return {
+                    success: false,
+                    message: 'Appointment not found'
+                };
+            }
+
+            return {
+                success: true,
+                data: termin
+            };
+
+        } catch (error) {
+            Logger.error('Error getting termin by ID', error);
+            throw error;
+        }
     }
 
     /**
-     * Create/Book a termin
+     * READ - Get all appointments with filters
      */
-    async createTermin(data, createdBy) {
-        const { doctorId, patientId, date, startTime, type, notes } = data;
+    static async getAllTermins(filters = {}, page = 1, limit = 10) {
+        try {
+            const {
+                patientId,
+                doctorId,
+                status,
+                type,
+                dateFrom,
+                dateTo
+            } = filters;
 
-        // Verify doctor exists and is active
-        const doctor = await User.findById(doctorId).populate('roleId');
-        if (!doctor) {
-            throw new NotFoundError('Doctor not found');
-        }
-        if (doctor.roleId.name !== 'doctor') {
-            throw new BadRequestError('Selected user is not a doctor');
-        }
-        if (!doctor.isActive) {
-            throw new BadRequestError('Doctor is not active');
-        }
+            const query = {};
 
-        // Verify patient exists and is active
-        const patient = await User.findById(patientId).populate('roleId');
-        if (!patient) {
-            throw new NotFoundError('Patient not found');
+            if (patientId) query.patientId = patientId;
+            if (doctorId) query.doctorId = doctorId;
+            if (status) query.status = status;
+            if (type) query.type = type;
+
+            if (dateFrom || dateTo) {
+                query.date = {};
+                if (dateFrom) query.date.$gte = new Date(dateFrom);
+                if (dateTo) query.date.$lte = new Date(dateTo);
+            }
+
+            const skip = (page - 1) * limit;
+
+            const [termins, total] = await Promise.all([
+                Termin.find(query)
+                    .populate('patientId', 'fname lname email phone')
+                    .populate('doctorId', 'fname lname email specialization')
+                    .sort({ date: 1, startTime: 1 })
+                    .skip(skip)
+                    .limit(limit),
+                Termin.countDocuments(query)
+            ]);
+
+            return {
+                success: true,
+                data: termins,
+                pagination: {
+                    page,
+                    limit,
+                    total,
+                    pages: Math.ceil(total / limit)
+                }
+            };
+
+        } catch (error) {
+            Logger.error('Error getting all termins', error);
+            throw error;
         }
-        if (patient.roleId.name !== 'patient') {
-            throw new BadRequestError('Selected user is not a patient');
-        }
-        if (!patient.isActive) {
-            throw new BadRequestError('Patient is not active');
-        }
-
-        // Check if the slot is available
-        const availableSlots = await this.getDoctorAvailableSlots(doctorId, date);
-        const requestedSlot = availableSlots.find(slot => slot.startTime === startTime);
-
-        if (!requestedSlot) {
-            throw new ConflictError('Selected time slot is not available');
-        }
-
-        // Create the termin
-        const termin = await Termin.create({
-            doctorId,
-            patientId,
-            date: new Date(date),
-            startTime: requestedSlot.startTime,
-            endTime: requestedSlot.endTime,
-            duration: 30,
-            status: 'scheduled',
-            type: type || 'consultation',
-            notes,
-            createdBy
-        });
-
-        Logger.info(`Termin created: ${termin._id} for patient ${patientId} with doctor ${doctorId}`);
-
-        return await Termin.findById(termin._id)
-            .populate('doctorId', 'fname lname email')
-            .populate('patientId', 'fname lname email')
-            .populate('createdBy', 'fname lname');
     }
 
     /**
-     * Get termins for a doctor
+     * READ - Get patient's appointments
      */
-    async getDoctorTermins(doctorId, filters = {}) {
-        const query = { doctorId };
-
-        if (filters.date) {
-            const startOfDay = new Date(filters.date);
-            startOfDay.setHours(0, 0, 0, 0);
-            const endOfDay = new Date(filters.date);
-            endOfDay.setHours(23, 59, 59, 999);
+    static async getPatientTermins(patientId, includeCompleted = false) {
+        try {
+            const query = { patientId };
             
-            query.date = { $gte: startOfDay, $lte: endOfDay };
-        }
+            if (!includeCompleted) {
+                query.status = { $nin: ['completed', 'cancelled'] };
+            }
 
-        if (filters.status) {
-            query.status = filters.status;
-        }
+            const termins = await Termin.find(query)
+                .populate('doctorId', 'fname lname specialization')
+                .sort({ date: 1, startTime: 1 });
 
-        return await Termin.find(query)
-            .populate('patientId', 'fname lname email phone')
-            .populate('createdBy', 'fname lname')
+            return {
+                success: true,
+                data: termins
+            };
+
+        } catch (error) {
+            Logger.error('Error getting patient termins', error);
+            throw error;
+        }
+    }
+
+    /**
+     * READ - Get doctor's schedule
+     */
+    static async getDoctorSchedule(doctorId, dateFrom, dateTo) {
+        try {
+            const termins = await Termin.find({
+                doctorId,
+                date: {
+                    $gte: new Date(dateFrom),
+                    $lte: new Date(dateTo)
+                },
+                status: { $nin: ['cancelled', 'no-show'] }
+            })
+            .populate('patientId', 'fname lname phone')
             .sort({ date: 1, startTime: 1 });
+
+            return {
+                success: true,
+                data: termins
+            };
+
+        } catch (error) {
+            Logger.error('Error getting doctor schedule', error);
+            throw error;
+        }
     }
 
     /**
-     * Get termins for a patient
+     * READ - Check availability and get available slots
      */
-    async getPatientTermins(patientId, filters = {}) {
-        const query = { patientId };
+    static async checkAvailability(doctorId, date, duration = 30) {
+        try {
+            const availableSlots = await TerminConflictManager.getAvailableTimeSlots(
+                doctorId,
+                new Date(date),
+                duration
+            );
 
-        if (filters.status) {
-            query.status = filters.status;
+            return {
+                success: true,
+                date,
+                doctorId,
+                availableSlots,
+                count: availableSlots.length
+            };
+
+        } catch (error) {
+            Logger.error('Error checking availability', error);
+            throw error;
         }
-
-        return await Termin.find(query)
-            .populate('doctorId', 'fname lname email')
-            .populate('createdBy', 'fname lname')
-            .sort({ date: -1, startTime: -1 });
     }
 
     /**
-     * Get termin by ID
+     * READ - Find available doctors
      */
-    async getTerminById(terminId) {
-        const termin = await Termin.findById(terminId)
-            .populate('doctorId', 'fname lname email')
-            .populate('patientId', 'fname lname email phone')
-            .pocompletedpulate('createdBy', 'fname lname');
+    static async findAvailableDoctors(date, startTime, endTime, specialization = null) {
+        try {
+            const doctors = await TerminConflictManager.findAvailableDoctors(
+                new Date(date),
+                startTime,
+                endTime,
+                specialization
+            );
 
-        if (!termin) {
-            throw new NotFoundError('Termin not found');
+            return {
+                success: true,
+                date,
+                timeSlot: { startTime, endTime },
+                availableDoctors: doctors,
+                count: doctors.length
+            };
+
+        } catch (error) {
+            Logger.error('Error finding available doctors', error);
+            throw error;
         }
-
-        return termin;
     }
 
     /**
-     * Update termin status
+     * UPDATE - Update appointment
      */
-    async updateTerminStatus(terminId, status, reason = null) {
-        const termin = await Termin.findById(terminId);
-        if (!termin) {
-            throw new NotFoundError('Termin not found');
+    static async updateTermin(terminId, updates) {
+        try {
+            const termin = await Termin.findById(terminId);
+
+            if (!termin) {
+                return {
+                    success: false,
+                    message: 'Appointment not found'
+                };
+            }
+
+            // If updating time, check availability
+            if (updates.date || updates.startTime || updates.duration) {
+                const newDate = updates.date ? new Date(updates.date) : termin.date;
+                const newStartTime = updates.startTime || termin.startTime;
+                const newDuration = updates.duration || termin.duration;
+                const newEndTime = TerminConflictManager.addMinutesToTime(newStartTime, newDuration);
+
+                const availability = await TerminConflictManager.checkDoctorAvailability(
+                    termin.doctorId,
+                    newDate,
+                    newStartTime,
+                    newEndTime,
+                    terminId
+                );
+
+                if (!availability.available) {
+                    return {
+                        success: false,
+                        message: availability.reason,
+                        conflicts: availability.conflicts
+                    };
+                }
+
+                updates.endTime = newEndTime;
+            }
+
+            Object.assign(termin, updates);
+            await termin.save();
+
+            Logger.info('Termin updated successfully', { terminId });
+
+            return {
+                success: true,
+                message: 'Appointment updated successfully',
+                data: termin
+            };
+
+        } catch (error) {
+            Logger.error('Error updating termin', error);
+            throw error;
         }
-
-        termin.status = status;
-
-        if (status === 'cancelled') {
-            termin.cancelledAt = new Date();
-            if (reason) termin.cancelReason = reason;
-        }
-
-        if (status === 'completed') {
-            termin.completedAt = new Date();
-        }
-
-        await termin.save();
-
-        Logger.info(`Termin ${terminId} status updated to ${status}`);
-
-        return this.getTerminById(terminId);
     }
 
     /**
-     * Cancel termin
+     * UPDATE - Update appointment status
      */
-    async cancelTermin(terminId, reason) {
-        return this.updateTerminStatus(terminId, 'cancelled', reason);
+    static async updateStatus(terminId, status, reason = null) {
+        try {
+            const validStatuses = ['scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
+            
+            if (!validStatuses.includes(status)) {
+                return {
+                    success: false,
+                    message: 'Invalid status'
+                };
+            }
+
+            const termin = await Termin.findById(terminId);
+
+            if (!termin) {
+                return {
+                    success: false,
+                    message: 'Appointment not found'
+                };
+            }
+
+            termin.status = status;
+
+            if (status === 'cancelled' && reason) {
+                termin.cancelReason = reason;
+                termin.cancelledAt = new Date();
+            }
+
+            if (status === 'completed') {
+                termin.completedAt = new Date();
+            }
+
+            await termin.save();
+
+            Logger.info('Termin status updated', { terminId, status });
+
+            return {
+                success: true,
+                message: `Appointment ${status} successfully`,
+                data: termin
+            };
+
+        } catch (error) {
+            Logger.error('Error updating termin status', error);
+            throw error;
+        }
     }
 
     /**
-     * Complete termin
+     * UPDATE - Confirm appointment
      */
-    async completeTermin(terminId) {
-        return this.updateTerminStatus(terminId, 'completed');
+    static async confirmTermin(terminId) {
+        return this.updateStatus(terminId, 'confirmed');
+    }
+
+    /**
+     * UPDATE - Cancel appointment
+     */
+    static async cancelTermin(terminId, reason) {
+        return this.updateStatus(terminId, 'cancelled', reason);
+    }
+
+    /**
+     * UPDATE - Complete appointment
+     */
+    static async completeTermin(terminId) {
+        return this.updateStatus(terminId, 'completed');
+    }
+
+    /**
+     * DELETE - Delete appointment (soft delete)
+     */
+    static async deleteTermin(terminId, reason = 'Deleted by user') {
+        try {
+            return this.cancelTermin(terminId, reason);
+        } catch (error) {
+            Logger.error('Error deleting termin', error);
+            throw error;
+        }
+    }
+
+    /**
+     * UTILITY - Get upcoming appointments
+     */
+    static async getUpcomingTermins(doctorId = null, patientId = null, days = 7) {
+        try {
+            const query = {
+                date: {
+                    $gte: new Date(),
+                    $lte: new Date(Date.now() + days * 24 * 60 * 60 * 1000)
+                },
+                status: { $in: ['scheduled', 'confirmed'] }
+            };
+
+            if (doctorId) query.doctorId = doctorId;
+            if (patientId) query.patientId = patientId;
+
+            const termins = await Termin.find(query)
+                .populate('patientId', 'fname lname phone')
+                .populate('doctorId', 'fname lname specialization')
+                .sort({ date: 1, startTime: 1 });
+
+            return {
+                success: true,
+                data: termins
+            };
+
+        } catch (error) {
+            Logger.error('Error getting upcoming termins', error);
+            throw error;
+        }
+    }
+
+    /**
+     * UTILITY - Get today's appointments
+     */
+    static async getTodayTermins(doctorId) {
+        try {
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            
+            const tomorrow = new Date(today);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+
+            const termins = await Termin.find({
+                doctorId,
+                date: {
+                    $gte: today,
+                    $lt: tomorrow
+                }
+            })
+            .populate('patientId', 'fname lname phone')
+            .sort({ startTime: 1 });
+
+            return {
+                success: true,
+                data: termins
+            };
+
+        } catch (error) {
+            Logger.error('Error getting today termins', error);
+            throw error;
+        }
+    }
+
+    /**
+     * UTILITY - Reschedule appointment
+     */
+    static async rescheduleTermin(terminId, newDate, newStartTime, newDuration = null) {
+        try {
+            const termin = await Termin.findById(terminId);
+
+            if (!termin) {
+                return {
+                    success: false,
+                    message: 'Appointment not found'
+                };
+            }
+
+            const duration = newDuration || termin.duration;
+            const endTime = TerminConflictManager.addMinutesToTime(newStartTime, duration);
+
+            const availability = await TerminConflictManager.checkDoctorAvailability(
+                termin.doctorId,
+                new Date(newDate),
+                newStartTime,
+                endTime,
+                terminId
+            );
+
+            if (!availability.available) {
+                const alternatives = await TerminConflictManager.suggestAlternativeSlots(
+                    termin.doctorId,
+                    new Date(newDate),
+                    duration
+                );
+
+                return {
+                    success: false,
+                    message: availability.reason,
+                    conflicts: availability.conflicts,
+                    alternatives
+                };
+            }
+
+            termin.date = new Date(newDate);
+            termin.startTime = newStartTime;
+            termin.endTime = endTime;
+            termin.duration = duration;
+            termin.status = 'scheduled';
+            termin.reminderSent = false;
+
+            await termin.save();
+
+            Logger.info('Termin rescheduled successfully', { terminId });
+
+            return {
+                success: true,
+                message: 'Appointment rescheduled successfully',
+                data: termin
+            };
+
+        } catch (error) {
+            Logger.error('Error rescheduling termin', error);
+            throw error;
+        }
     }
 }
 

@@ -6,16 +6,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongodb:27017/healthpulse
-    depends_on:
-      - mongodb
-
-  mongodb:
-    image: mongo:latest
-    ports:
-      - "27018:27017"
-    volumes:
-      - mongodb_data:/data/db
-
-volumes:
-  mongodb_data:
+      - MONGODB_URI=mongodb://host.docker.internal:27018/healthpulse
+      - NODE_ENV=production
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

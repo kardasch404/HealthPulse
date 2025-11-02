@@ -22,19 +22,6 @@ const laboratorySchema = new Schema({
     maxlength: [200, 'Name cannot exceed 200 characters']
   },
   
-  licenseNumber: {
-    type: String,
-    required: [true, 'License number is required'],
-    unique: true,
-    trim: true,
-    uppercase: true
-  },
-  
-  accreditationNumber: {
-    type: String,
-    trim: true
-  },
-  
   registrationDate: {
     type: Date,
     default: Date.now
@@ -57,8 +44,6 @@ const laboratorySchema = new Schema({
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
     },
-    
-    fax: String,
     
     website: String,
     
@@ -104,11 +89,7 @@ const laboratorySchema = new Schema({
         min: -180,
         max: 180
       }
-    },
-    
-    floor: String,
-    buildingName: String,
-    landmark: String
+    }
   },
   
   // ========================================
@@ -148,37 +129,14 @@ const laboratorySchema = new Schema({
   departments: [{
     name: {
       type: String,
-      enum: [
-        'hematology',
-        'biochemistry',
-        'microbiology',
-        'immunology',
-        'molecular_biology',
-        'pathology',
-        'cytology',
-        'toxicology',
-        'serology',
-        'parasitology',
-        'virology',
-        'genetics',
-        'histopathology'
-      ],
+      enum: ['hematology', 'biochemistry', 'microbiology'],
       required: true
     },
     
     isActive: {
       type: Boolean,
       default: true
-    },
-    
-    headTechnician: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    
-    equipmentList: [String],
-    
-    certifications: [String]
+    }
   }],
   
   // ========================================
@@ -276,31 +234,13 @@ const laboratorySchema = new Schema({
     
     role: {
       type: String,
-      enum: [
-        'director',
-        'pathologist',
-        'medical_technologist',
-        'lab_technician',
-        'phlebotomist',
-        'lab_assistant',
-        'quality_officer'
-      ],
+      enum: ['lab_technician'],
       required: true
     },
-    
-    licenseNumber: String,
-    
-    specialization: String,
     
     phone: String,
     
     email: String,
-    
-    workSchedule: [{
-      day: String,
-      startTime: String,
-      endTime: String
-    }],
     
     joinedDate: {
       type: Date,
@@ -318,45 +258,8 @@ const laboratorySchema = new Schema({
   // ========================================
   services: [{
     type: String,
-    enum: [
-      'routine_testing',
-      'urgent_testing',
-      'home_sample_collection',
-      'corporate_packages',
-      'health_checkup_packages',
-      'covid_testing',
-      'genetic_testing',
-      'prenatal_screening',
-      'cancer_screening',
-      'allergy_testing',
-      'hormone_testing',
-      'drug_testing',
-      'food_intolerance',
-      'pathology_consultation'
-    ]
+    enum: ['routine_testing', 'urgent_testing']
   }],
-  
-  // Home collection service
-  homeCollection: {
-    available: {
-      type: Boolean,
-      default: false
-    },
-    
-    serviceRadius: {
-      type: Number, // in kilometers
-      default: 10
-    },
-    
-    fee: Number,
-    
-    freeCollectionMinimum: Number,
-    
-    availableSlots: [{
-      day: String,
-      timeSlots: [String] // e.g., ["08:00-10:00", "10:00-12:00"]
-    }]
-  },
   
   // ========================================
   // EQUIPMENT & TECHNOLOGY
@@ -374,45 +277,6 @@ const laboratorySchema = new Schema({
       type: String,
       enum: ['operational', 'maintenance', 'out_of_service'],
       default: 'operational'
-    }
-  }],
-  
-  // ========================================
-  // QUALITY & ACCREDITATION
-  // ========================================
-  qualityControl: {
-    internalQC: {
-      frequency: String, // e.g., "daily", "weekly"
-      lastQCDate: Date,
-      nextQCDate: Date
-    },
-    
-    externalQC: {
-      provider: String,
-      frequency: String,
-      lastAssessmentDate: Date,
-      nextAssessmentDate: Date,
-      score: Number
-    },
-    
-    proficiencyTesting: [{
-      testName: String,
-      provider: String,
-      lastParticipationDate: Date,
-      result: String // e.g., "satisfactory", "needs improvement"
-    }]
-  },
-  
-  accreditations: [{
-    body: String, // e.g., "ISO 15189", "CAP"
-    certificateNumber: String,
-    issueDate: Date,
-    expiryDate: Date,
-    scope: String,
-    status: {
-      type: String,
-      enum: ['active', 'expired', 'suspended'],
-      default: 'active'
     }
   }],
   
@@ -440,193 +304,6 @@ const laboratorySchema = new Schema({
     
     verificationNotes: String
   },
-  
-  // ========================================
-  // PARTNERSHIP DETAILS
-  // ========================================
-  partnership: {
-    partnerSince: {
-      type: Date,
-      default: Date.now
-    },
-    
-    contractNumber: String,
-    
-    contractStartDate: Date,
-    
-    contractEndDate: Date,
-    
-    commissionRate: Number,
-    
-    paymentTerms: String,
-    
-    notes: String
-  },
-  
-  // ========================================
-  // BANKING INFORMATION
-  // ========================================
-  bankingInfo: {
-    bankName: String,
-    
-    accountNumber: {
-      type: String,
-      select: false
-    },
-    
-    iban: {
-      type: String,
-      select: false
-    },
-    
-    swift: String,
-    
-    accountHolderName: String
-  },
-  
-  // ========================================
-  // STATISTICS
-  // ========================================
-  stats: {
-    totalOrdersReceived: {
-      type: Number,
-      default: 0
-    },
-    
-    totalOrdersCompleted: {
-      type: Number,
-      default: 0
-    },
-    
-    totalOrdersCancelled: {
-      type: Number,
-      default: 0
-    },
-    
-    averageTurnaroundTime: {
-      type: Number, // in hours
-      default: 0
-    },
-    
-    onTimeDeliveryRate: {
-      type: Number, // percentage
-      default: 0
-    },
-    
-    averageRating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0
-    },
-    
-    totalRatings: {
-      type: Number,
-      default: 0
-    },
-    
-    lastOrderDate: Date,
-    
-    // Monthly statistics
-    monthlyOrders: [{
-      month: String, // e.g., "2025-01"
-      totalOrders: Number,
-      completedOrders: Number,
-      revenue: Number
-    }]
-  },
-  
-  // ========================================
-  // RATINGS & REVIEWS
-  // ========================================
-  ratings: [{
-    patientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    
-    labOrderId: {
-      type: Schema.Types.ObjectId,
-      ref: 'LabOrder'
-    },
-    
-    rating: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 5
-    },
-    
-    aspects: {
-      accuracy: Number,
-      turnaroundTime: Number,
-      staff: Number,
-      cleanliness: Number
-    },
-    
-    review: String,
-    
-    ratedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
-  // ========================================
-  // PACKAGE DEALS
-  // ========================================
-  packages: [{
-    packageId: String,
-    
-    name: String, // e.g., "Basic Health Checkup"
-    
-    description: String,
-    
-    testsIncluded: [{
-      testCode: String,
-      testName: String
-    }],
-    
-    price: {
-      type: Number,
-      required: true
-    },
-    
-    discountPercentage: Number,
-    
-    validFrom: Date,
-    validUntil: Date,
-    
-    isActive: {
-      type: Boolean,
-      default: true
-    }
-  }],
-  
-  // ========================================
-  // INSURANCE & BILLING
-  // ========================================
-  insuranceAccepted: [{
-    insuranceName: String,
-    insuranceCode: String,
-    discountRate: Number,
-    directBilling: {
-      type: Boolean,
-      default: false
-    }
-  }],
-  
-  // ========================================
-  // NOTES & METADATA
-  // ========================================
-  notes: String,
-  
-  internalNotes: {
-    type: String,
-    select: false
-  },
-  
-  tags: [String],
   
   // ========================================
   // SOCIAL MEDIA

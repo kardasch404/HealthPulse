@@ -1,24 +1,27 @@
 import BaseController from '../abstractions/BaseController.js';
+import PharmacyService from '../services/PharmacyService.js';
 import { HTTP_STATUS } from '../constants/statusCodes.js';
 
 class PharmacyController extends BaseController {
-    constructor(pharmacyService) {
-        super();
-        this.pharmacyService = pharmacyService;
-    }
-
     /**
-     * Create a new pharmacy
+     * Register a new pharmacy
      * @route POST /api/v1/pharmacies
      * @access Admin only
      */
-    async createPharmacy(req, res) {
+    async registerPharmacy(req, res) {
         try {
-            const pharmacy = await this.pharmacyService.createPharmacy(req.body);
+            const result = await PharmacyService.registerPharmacy(req.body);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
 
             return this.handleSuccess(res, {
-                message: 'Pharmacy registered successfully',
-                data: pharmacy
+                message: result.message,
+                data: result.data
             }, HTTP_STATUS.CREATED);
         } catch (error) {
             return this.handleError(res, error);
@@ -28,43 +31,34 @@ class PharmacyController extends BaseController {
     /**
      * Get all pharmacies with filters and pagination
      * @route GET /api/v1/pharmacies
-     * @access Admin, Pharmacist
+     * @access Admin, Pharmacist, Doctor
      */
     async getAllPharmacies(req, res) {
         try {
-            const {
-                page,
-                limit,
-                sortBy,
-                sortOrder,
-                status,
-                city,
-                search,
-                isVerified,
-                services
-            } = req.query;
+            const { page, limit, status, city, hasDelivery } = req.query;
 
-            const filters = {
-                page: parseInt(page) || 1,
-                limit: parseInt(limit) || 10,
-                sortBy: sortBy || 'createdAt',
-                sortOrder: sortOrder || 'desc'
-            };
-
-            // Add query filters
+            const filters = {};
             if (status) filters.status = status;
             if (city) filters.city = city;
-            if (search) filters.search = search;
-            if (isVerified !== undefined) filters.isVerified = isVerified === 'true';
-            if (services) {
-                filters.services = Array.isArray(services) ? services : [services];
-            }
+            if (hasDelivery !== undefined) filters.hasDelivery = hasDelivery === 'true';
 
-            const result = await this.pharmacyService.getAllPharmacies(filters);
+            const result = await PharmacyService.getAllPharmacies(
+                filters,
+                parseInt(page) || 1,
+                parseInt(limit) || 10
+            );
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
 
             return this.handleSuccess(res, {
                 message: 'Pharmacies retrieved successfully',
-                ...result
+                data: result.data,
+                pagination: result.pagination
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -74,18 +68,24 @@ class PharmacyController extends BaseController {
     /**
      * Get pharmacy by ID
      * @route GET /api/v1/pharmacies/:id
-     * @access Admin, Pharmacist
+     * @access Admin, Pharmacist, Doctor
      */
     async getPharmacyById(req, res) {
         try {
             const { id } = req.params;
-            const includePrivate = req.user?.role === 'admin';
             
-            const pharmacy = await this.pharmacyService.getPharmacyById(id, includePrivate);
+            const result = await PharmacyService.getPharmacyById(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
 
             return this.handleSuccess(res, {
                 message: 'Pharmacy retrieved successfully',
-                data: pharmacy
+                data: result.data
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -100,11 +100,19 @@ class PharmacyController extends BaseController {
     async updatePharmacy(req, res) {
         try {
             const { id } = req.params;
-            const pharmacy = await this.pharmacyService.updatePharmacy(id, req.body);
+            
+            const result = await PharmacyService.updatePharmacy(id, req.body);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
 
             return this.handleSuccess(res, {
-                message: 'Pharmacy updated successfully',
-                data: pharmacy
+                message: result.message,
+                data: result.data
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -112,17 +120,25 @@ class PharmacyController extends BaseController {
     }
 
     /**
-     * Delete pharmacy (soft delete)
+     * Delete pharmacy
      * @route DELETE /api/v1/pharmacies/:id
      * @access Admin only
      */
     async deletePharmacy(req, res) {
         try {
             const { id } = req.params;
-            await this.pharmacyService.deletePharmacy(id);
+            
+            const result = await PharmacyService.deletePharmacy(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
 
             return this.handleSuccess(res, {
-                message: 'Pharmacy deleted successfully'
+                message: result.message
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -137,11 +153,19 @@ class PharmacyController extends BaseController {
     async activatePharmacy(req, res) {
         try {
             const { id } = req.params;
-            const pharmacy = await this.pharmacyService.activatePharmacy(id);
+            
+            const result = await PharmacyService.activatePharmacy(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
 
             return this.handleSuccess(res, {
-                message: 'Pharmacy activated successfully',
-                data: pharmacy
+                message: result.message,
+                data: result.data
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -157,12 +181,26 @@ class PharmacyController extends BaseController {
         try {
             const { id } = req.params;
             const { reason } = req.body;
+
+            if (!reason) {
+                return this.handleError(res, {
+                    message: 'Suspension reason is required',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
             
-            const pharmacy = await this.pharmacyService.suspendPharmacy(id, reason);
+            const result = await PharmacyService.suspendPharmacy(id, reason);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
 
             return this.handleSuccess(res, {
-                message: 'Pharmacy suspended successfully',
-                data: pharmacy
+                message: result.message,
+                data: result.data
             });
         } catch (error) {
             return this.handleError(res, error);
@@ -170,128 +208,33 @@ class PharmacyController extends BaseController {
     }
 
     /**
-     * Verify pharmacy
-     * @route PATCH /api/v1/pharmacies/:id/verify
-     * @access Admin only
-     */
-    async verifyPharmacy(req, res) {
-        try {
-            const { id } = req.params;
-            const { notes } = req.body;
-            const verifiedBy = req.user.userId;
-            
-            const pharmacy = await this.pharmacyService.verifyPharmacy(id, verifiedBy, notes);
-
-            return this.handleSuccess(res, {
-                message: 'Pharmacy verified successfully',
-                data: pharmacy
-            });
-        } catch (error) {
-            return this.handleError(res, error);
-        }
-    }
-
-    /**
-     * Add pharmacist to pharmacy
-     * @route POST /api/v1/pharmacies/:id/pharmacists
-     * @access Admin only
-     */
-    async addPharmacist(req, res) {
-        try {
-            const { id } = req.params;
-            const pharmacy = await this.pharmacyService.addPharmacist(id, req.body);
-
-            return this.handleSuccess(res, {
-                message: 'Pharmacist added successfully',
-                data: pharmacy
-            });
-        } catch (error) {
-            return this.handleError(res, error);
-        }
-    }
-
-    /**
-     * Get pharmacies by location
-     * @route GET /api/v1/pharmacies/nearby
+     * Search pharmacies
+     * @route GET /api/v1/pharmacies/search
      * @access Public (authenticated)
      */
-    async getNearbyPharmacies(req, res) {
+    async searchPharmacies(req, res) {
         try {
-            const { latitude, longitude, radius } = req.query;
+            const { q } = req.query;
 
-            if (!latitude || !longitude) {
+            if (!q) {
                 return this.handleError(res, {
-                    message: 'Latitude and longitude are required',
+                    message: 'Search term is required',
                     statusCode: HTTP_STATUS.BAD_REQUEST
                 });
             }
 
-            const pharmacies = await this.pharmacyService.getPharmaciesByLocation(
-                parseFloat(latitude),
-                parseFloat(longitude),
-                parseFloat(radius) || 10
-            );
+            const result = await PharmacyService.searchPharmacies(q);
 
-            return this.handleSuccess(res, {
-                message: 'Nearby pharmacies retrieved successfully',
-                data: pharmacies
-            });
-        } catch (error) {
-            return this.handleError(res, error);
-        }
-    }
-
-    /**
-     * Search pharmacies by services
-     * @route GET /api/v1/pharmacies/search/services
-     * @access Public (authenticated)
-     */
-    async searchByServices(req, res) {
-        try {
-            const { services, city } = req.query;
-
-            if (!services) {
+            if (!result.success) {
                 return this.handleError(res, {
-                    message: 'Services parameter is required',
+                    message: result.message,
                     statusCode: HTTP_STATUS.BAD_REQUEST
                 });
             }
-
-            const serviceArray = Array.isArray(services) ? services : [services];
-            const filters = city ? { city } : {};
-
-            const pharmacies = await this.pharmacyService.searchByServices(serviceArray, filters);
 
             return this.handleSuccess(res, {
                 message: 'Pharmacies found successfully',
-                data: pharmacies
-            });
-        } catch (error) {
-            return this.handleError(res, error);
-        }
-    }
-
-    /**
-     * Get pharmacy statistics (for dashboard)
-     * @route GET /api/v1/pharmacies/stats
-     * @access Admin only
-     */
-    async getPharmacyStats(req, res) {
-        try {
-            const { timeframe = '30' } = req.query; // days
-            
-            // This is a basic implementation - you can enhance with aggregation
-            const stats = {
-                totalPharmacies: await this.pharmacyService.getAllPharmacies({ status: undefined }).then(r => r.pagination.totalItems),
-                activePharmacies: await this.pharmacyService.getAllPharmacies({ status: 'active' }).then(r => r.pagination.totalItems),
-                pendingPharmacies: await this.pharmacyService.getAllPharmacies({ status: 'pending_approval' }).then(r => r.pagination.totalItems),
-                suspendedPharmacies: await this.pharmacyService.getAllPharmacies({ status: 'suspended' }).then(r => r.pagination.totalItems),
-                verifiedPharmacies: await this.pharmacyService.getAllPharmacies({ isVerified: true }).then(r => r.pagination.totalItems)
-            };
-
-            return this.handleSuccess(res, {
-                message: 'Pharmacy statistics retrieved successfully',
-                data: stats
+                data: result.data
             });
         } catch (error) {
             return this.handleError(res, error);

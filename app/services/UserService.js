@@ -1,237 +1,199 @@
-import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import Role from '../models/Role.js';
-import BaseService from '../abstractions/BaseServise.js';
-import { NotFoundError, ConflictError, BadRequestError } from '../utils/errors.js';
+import bcrypt from 'bcrypt';
 import Logger from '../logs/Logger.js';
 
-class UserService extends BaseService {
-    constructor() {
-        super(User);
-    }
+class UserService {
+    async createUser(userData) {
+        try {
+            const { fname, lname, email, password, phone, roleId } = userData;
 
-    /**
-     * Create new user
-     * Admin can create any user
-     * Doctor/Nurse/Reception can only create patients
-     */
-    async createUser(data, requestingUser) {
-        const allowedToCreateAny = ['admin'];
-        const allowedToCreatePatient = ['admin', 'doctor', 'nurse', 'reception'];
-
-        // Check if email already exists
-        const existingUser = await User.findOne({ email: data.email });
-        if (existingUser) {
-            throw new ConflictError('Email already exists');
-        }
-
-        // Check if phone already exists (if provided)
-        if (data.phone) {
-            const existingPhone = await User.findOne({ phone: data.phone });
-            if (existingPhone) {
-                throw new ConflictError('Phone number already exists');
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                throw new Error('User with this email already exists');
             }
-        }
 
-        // Verify role exists and get role details
-        const role = await Role.findById(data.roleId);
-        if (!role) {
-            throw new NotFoundError('Role not found');
-        }
+            const hashedPassword = await bcrypt.hash(password, 10);
 
-        if (!role.isActive) {
-            throw new BadRequestError('Selected role is not active');
-        }
+            const user = new User({
+                fname,
+                lname,
+                email,
+                password: hashedPassword,
+                phone,
+                roleId
+            });
 
-        // Check permissions based on target role
-        if (role.name === 'patient') {
-            // Check if user can create patients
-            if (!allowedToCreatePatient.includes(requestingUser.role)) {
-                throw new ForbiddenError('You do not have permission to create patient accounts');
+            await user.save();
+
+            Logger.info('User created successfully', {
+                userId: user._id,
+                email: user.email
+            });
+
+            return user;
+        } catch (error) {
+            Logger.error('Error creating user', error);
+            throw error;
+        }
+    }
+
+    async getAllUsers(filters = {}, page = 1, limit = 10) {
+        try {
+            const query = {};
+            
+            if (filters.role) {
+                const role = await Role.findOne({ name: filters.role });
+                if (role) {
+                    query.roleId = role._id;
+                }
             }
-        } else {
-            // Only admin can create non-patient users
-            if (!allowedToCreateAny.includes(requestingUser.role)) {
-                throw new ForbiddenError('Only administrators can create staff accounts');
+
+            if (filters.isActive !== undefined) {
+                query.isActive = filters.isActive;
             }
-        }
 
-        Logger.info(`User ${requestingUser.userId} (${requestingUser.role}) is creating user with role ${role.name}`);
-
-        // Hash password
-        const hashedPassword = await bcrypt.hash(data.password, 10);
-
-        // Create user
-        const user = await User.create({
-            email: data.email,
-            password: hashedPassword,
-            fname: data.fname,
-            lname: data.lname,
-            phone: data.phone,
-            roleId: data.roleId,
-            isActive: true
-        });
-
-        Logger.info(`User created: ${user.email} with role ${role.name} by ${requestingUser.role} ${requestingUser.userId}`);
-
-        // Return user without password
-        return this.getUserById(user._id);
-    }
-
-    /**
-     * Get user by ID with role populated
-     */
-    async getUserById(id) {
-        const user = await User.findById(id)
-            .select('-password')
-            .populate('roleId', 'name description');
-
-        if (!user) {
-            throw new NotFoundError('User not found');
-        }
-
-        return user;
-    }
-
-    /**
-     * Get all users
-     */
-    async getAllUsers(options = {}) {
-        const {
-            role,
-            isActive,
-            search
-        } = options;
-
-        const filters = {};
-        
-        if (role) {
-            const roleDoc = await Role.findOne({ name: role });
-            if (roleDoc) {
-                filters.roleId = roleDoc._id;
+            if (filters.search) {
+                query.$or = [
+                    { fname: { $regex: filters.search, $options: 'i' } },
+                    { lname: { $regex: filters.search, $options: 'i' } },
+                    { email: { $regex: filters.search, $options: 'i' } }
+                ];
             }
+
+            const skip = (page - 1) * limit;
+
+            const users = await User.find(query)
+                .populate('roleId')
+                .select('-password')
+                .skip(skip)
+                .limit(limit)
+                .sort({ createdAt: -1 });
+
+            const total = await User.countDocuments(query);
+
+            return {
+                users,
+                pagination: {
+                    currentPage: page,
+                    totalPages: Math.ceil(total / limit),
+                    totalItems: total,
+                    itemsPerPage: limit
+                }
+            };
+        } catch (error) {
+            Logger.error('Error fetching users', error);
+            throw error;
         }
-
-        if (typeof isActive !== 'undefined') {
-            filters.isActive = isActive;
-        }
-
-        // Add search functionality
-        if (search) {
-            filters.$or = [
-                { email: { $regex: search, $options: 'i' } },
-                { fname: { $regex: search, $options: 'i' } },
-                { lname: { $regex: search, $options: 'i' } },
-                { phone: { $regex: search, $options: 'i' } }
-            ];
-        }
-
-        const data = await User.find(filters)
-            .select('-password')
-            .populate('roleId', 'name description')
-            .sort({ createdAt: -1 });
-
-        return data;
     }
 
-    /**
-     * Update user
-     */
-    async updateUser(id, data) {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new NotFoundError('User not found');
-        }
+    async getUserById(userId) {
+        try {
+            const user = await User.findById(userId)
+                .populate('roleId')
+                .select('-password');
 
-        // Check email uniqueness if changing
-        if (data.email && data.email !== user.email) {
-            const existingEmail = await User.findOne({ email: data.email });
-            if (existingEmail) {
-                throw new ConflictError('Email already exists');
+            if (!user) {
+                throw new Error('User not found');
             }
+
+            return user;
+        } catch (error) {
+            Logger.error('Error fetching user by ID', error);
+            throw error;
         }
-
-        // Check phone uniqueness if changing
-        if (data.phone && data.phone !== user.phone) {
-            const existingPhone = await User.findOne({ phone: data.phone });
-            if (existingPhone) {
-                throw new ConflictError('Phone number already exists');
-            }
-        }
-
-        // Update user
-        const updatedUser = await User.findByIdAndUpdate(
-            id,
-            { $set: data },
-            { new: true, runValidators: true }
-        ).select('-password').populate('roleId');
-
-        Logger.info(`User updated: ${updatedUser.email}`);
-
-        return updatedUser;
     }
 
-    /**
-     * Delete user (soft delete)
-     */
-    async deleteUser(id) {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new NotFoundError('User not found');
-        }
-
-        await User.findByIdAndUpdate(id, { isActive: false });
-
-        Logger.info(`User deactivated: ${user.email}`);
-
-        return { message: 'User deactivated successfully' };
-    }
-
-    /**
-     * Activate user
-     */
-    async activateUser(id) {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new NotFoundError('User not found');
-        }
-
-        await User.findByIdAndUpdate(id, { isActive: true });
-
-        Logger.info(`User activated: ${user.email}`);
-
-        return { message: 'User activated successfully' };
-    }
-
-    /**
-     * Change user password
-     */
-    async changePassword(id, newPassword) {
-        const user = await User.findById(id);
-        if (!user) {
-            throw new NotFoundError('User not found');
-        }
-
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        await User.findByIdAndUpdate(id, { password: hashedPassword });
-
-        Logger.info(`Password changed for user: ${user.email}`);
-
-        return { message: 'Password changed successfully' };
-    }
-
-    /**
-     * Get users by role
-     */
     async getUsersByRole(roleName) {
-        const role = await Role.findOne({ name: roleName });
-        if (!role) {
-            throw new NotFoundError('Role not found');
-        }
+        try {
+            const role = await Role.findOne({ name: roleName });
+            if (!role) {
+                throw new Error('Role not found');
+            }
 
-        return await User.find({ roleId: role._id, isActive: true })
-            .select('-password')
-            .populate('roleId');
+            const users = await User.find({ roleId: role._id })
+                .select('-password')
+                .sort({ fname: 1, lname: 1 });
+
+            return users;
+        } catch (error) {
+            Logger.error('Error fetching users by role', error);
+            throw error;
+        }
+    }
+
+    async updateUser(userId, updateData) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            if (updateData.email && updateData.email !== user.email) {
+                const existingUser = await User.findOne({ email: updateData.email });
+                if (existingUser) {
+                    throw new Error('Email already in use');
+                }
+            }
+
+            if (updateData.password) {
+                updateData.password = await bcrypt.hash(updateData.password, 10);
+            }
+
+            Object.assign(user, updateData);
+            await user.save();
+
+            Logger.info('User updated successfully', {
+                userId: user._id
+            });
+
+            return user;
+        } catch (error) {
+            Logger.error('Error updating user', error);
+            throw error;
+        }
+    }
+
+    async deleteUser(userId) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            user.isActive = false;
+            await user.save();
+
+            Logger.info('User deactivated successfully', {
+                userId: user._id
+            });
+
+            return user;
+        } catch (error) {
+            Logger.error('Error deactivating user', error);
+            throw error;
+        }
+    }
+
+    async activateUser(userId) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            user.isActive = true;
+            await user.save();
+
+            Logger.info('User activated successfully', {
+                userId: user._id
+            });
+
+            return user;
+        } catch (error) {
+            Logger.error('Error activating user', error);
+            throw error;
+        }
     }
 }
 

@@ -52,8 +52,6 @@ const pharmacySchema = new Schema({
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
     },
     
-    fax: String,
-    
     website: {
       type: String,
       match: [/^https?:\/\/.+/, 'Please provide a valid URL']
@@ -106,11 +104,7 @@ const pharmacySchema = new Schema({
         min: -180,
         max: 180
       }
-    },
-    
-    // Additional location info
-    neighborhood: String,
-    landmark: String
+    }
   },
   
   // ========================================
@@ -174,7 +168,7 @@ const pharmacySchema = new Schema({
     },
     
     deliveryRadius: {
-      type: Number, // in kilometers
+      type: Number, // in kilometersf
       default: 5
     },
     
@@ -202,21 +196,9 @@ const pharmacySchema = new Schema({
       required: true
     },
     
-    licenseNumber: {
-      type: String,
-      required: true
-    },
-    
-    specialization: String,
-    
     phone: String,
     
     email: String,
-    
-    isMainPharmacist: {
-      type: Boolean,
-      default: false
-    },
     
     workSchedule: [{
       day: String,
@@ -238,171 +220,6 @@ const pharmacySchema = new Schema({
     enum: ['active', 'suspended', 'inactive', 'pending_approval'],
     default: 'pending_approval'
   },
-  
-  verificationStatus: {
-    isVerified: {
-      type: Boolean,
-      default: false
-    },
-    
-    verifiedBy: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    
-    verifiedAt: Date,
-    
-    verificationNotes: String
-  },
-  
-  // ========================================
-  // PARTNERSHIP DETAILS
-  // ========================================
-  partnership: {
-    partnerSince: {
-      type: Date,
-      default: Date.now
-    },
-    
-    contractNumber: String,
-    
-    contractStartDate: Date,
-    
-    contractEndDate: Date,
-    
-    commissionRate: {
-      type: Number, // Percentage
-      default: 0
-    },
-    
-    paymentTerms: String,
-    
-    notes: String
-  },
-  
-  // ========================================
-  // BANKING INFORMATION (for payments)
-  // ========================================
-  bankingInfo: {
-    bankName: String,
-    
-    accountNumber: {
-      type: String,
-      select: false // Don't return by default for security
-    },
-    
-    iban: {
-      type: String,
-      select: false
-    },
-    
-    swift: String,
-    
-    accountHolderName: String
-  },
-  
-  // ========================================
-  // INVENTORY & CAPABILITIES
-  // ========================================
-  inventory: {
-    totalMedications: {
-      type: Number,
-      default: 0
-    },
-    
-    specializedMedications: [String], // e.g., ["oncology", "pediatric"]
-    
-    canOrderRareMedications: {
-      type: Boolean,
-      default: false
-    },
-    
-    averageStockLevel: {
-      type: String,
-      enum: ['low', 'medium', 'high'],
-      default: 'medium'
-    }
-  },
-  
-  // ========================================
-  // STATISTICS
-  // ========================================
-  stats: {
-    totalPrescriptionsReceived: {
-      type: Number,
-      default: 0
-    },
-    
-    totalPrescriptionsCompleted: {
-      type: Number,
-      default: 0
-    },
-    
-    totalPrescriptionsCancelled: {
-      type: Number,
-      default: 0
-    },
-    
-    averageProcessingTime: {
-      type: Number, // in minutes
-      default: 0
-    },
-    
-    averageRating: {
-      type: Number,
-      min: 0,
-      max: 5,
-      default: 0
-    },
-    
-    totalRatings: {
-      type: Number,
-      default: 0
-    },
-    
-    lastPrescriptionDate: Date
-  },
-  
-  // ========================================
-  // RATINGS & REVIEWS
-  // ========================================
-  ratings: [{
-    patientId: {
-      type: Schema.Types.ObjectId,
-      ref: 'User'
-    },
-    
-    prescriptionId: {
-      type: Schema.Types.ObjectId,
-      ref: 'Prescription'
-    },
-    
-    rating: {
-      type: Number,
-      required: true,
-      min: 1,
-      max: 5
-    },
-    
-    review: String,
-    
-    ratedAt: {
-      type: Date,
-      default: Date.now
-    }
-  }],
-  
-  // ========================================
-  // NOTES & METADATA
-  // ========================================
-  notes: String,
-  
-  internalNotes: {
-    type: String,
-    select: false // Only visible to admins
-  },
-  
-  tags: [String], // e.g., ["24h", "city-center", "parking"]
   
   // ========================================
   // SOCIAL MEDIA & ONLINE PRESENCE

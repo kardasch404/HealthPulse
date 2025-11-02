@@ -1,0 +1,210 @@
+import Consultation from '../models/Consultation.js';
+import Termin from '../models/Termin.js';
+import User from '../models/User.js';
+import Logger from '../logs/Logger.js';
+
+class ConsultationService {
+    // CREATE - Create new consultation
+    static async createConsultation(data) {
+        try {
+            const { terminId, patientId, doctorId, chiefComplaint, symptoms, createdBy } = data;
+
+            // Verify termin exists and belongs to this patient/doctor
+            if (terminId) {
+                const termin = await Termin.findById(terminId);
+                if (!termin) {
+                    return { success: false, message: 'Appointment not found' };
+                }
+                if (termin.patientId.toString() !== patientId || termin.doctorId.toString() !== doctorId) {
+                    return { success: false, message: 'Appointment does not match patient/doctor' };
+                }
+            }
+
+            const consultation = new Consultation({
+                terminId,
+                patientId,
+                doctorId,
+                chiefComplaint,
+                symptoms: symptoms || [],
+                status: 'in-progress',
+                createdBy
+            });
+
+            await consultation.save();
+            Logger.info('Consultation created', { consultationId: consultation._id });
+
+            return { success: true, message: 'Consultation created successfully', data: consultation };
+        } catch (error) {
+            Logger.error('Error creating consultation', error);
+            throw error;
+        }
+    }
+
+    // READ - Get consultation by ID
+    static async getConsultationById(consultationId) {
+        try {
+            const consultation = await Consultation.findById(consultationId)
+                .populate('patientId', 'fname lname email phone')
+                .populate('doctorId', 'fname lname email specialization')
+                .populate('terminId')
+                .populate('prescriptionId');
+
+            if (!consultation) {
+                return { success: false, message: 'Consultation not found' };
+            }
+
+            return { success: true, data: consultation };
+        } catch (error) {
+            Logger.error('Error getting consultation', error);
+            throw error;
+        }
+    }
+
+    // READ - Get all consultations with filters
+    static async getAllConsultations(filters = {}, page = 1, limit = 10) {
+        try {
+            const { patientId, doctorId, status, dateFrom, dateTo } = filters;
+            const query = {};
+
+            if (patientId) query.patientId = patientId;
+            if (doctorId) query.doctorId = doctorId;
+            if (status) query.status = status;
+            if (dateFrom || dateTo) {
+                query.createdAt = {};
+                if (dateFrom) query.createdAt.$gte = new Date(dateFrom);
+                if (dateTo) query.createdAt.$lte = new Date(dateTo);
+            }
+
+            const skip = (page - 1) * limit;
+            const [consultations, total] = await Promise.all([
+                Consultation.find(query)
+                    .populate('patientId', 'fname lname email phone')
+                    .populate('doctorId', 'fname lname specialization')
+                    .populate('terminId')
+                    .sort({ createdAt: -1 })
+                    .skip(skip)
+                    .limit(limit),
+                Consultation.countDocuments(query)
+            ]);
+
+            return {
+                success: true,
+                data: consultations,
+                pagination: { page, limit, total, pages: Math.ceil(total / limit) }
+            };
+        } catch (error) {
+            Logger.error('Error getting consultations', error);
+            throw error;
+        }
+    }
+
+    // READ - Get doctor's consultations
+    static async getDoctorConsultations(doctorId, includeCompleted = true) {
+        try {
+            const query = { doctorId };
+            if (!includeCompleted) {
+                query.status = { $ne: 'completed' };
+            }
+
+            const consultations = await Consultation.find(query)
+                .populate('patientId', 'fname lname phone')
+                .populate('terminId')
+                .sort({ createdAt: -1 });
+
+            return { success: true, data: consultations };
+        } catch (error) {
+            Logger.error('Error getting doctor consultations', error);
+            throw error;
+        }
+    }
+
+    // READ - Get patient consultation history
+    static async getPatientHistory(patientId, doctorId = null) {
+        try {
+            const query = { patientId, status: 'completed' };
+            if (doctorId) query.doctorId = doctorId;
+
+            const consultations = await Consultation.find(query)
+                .populate('doctorId', 'fname lname specialization')
+                .populate('prescriptionId')
+                .sort({ createdAt: -1 });
+
+            return { success: true, data: consultations };
+        } catch (error) {
+            Logger.error('Error getting patient history', error);
+            throw error;
+        }
+    }
+
+    // UPDATE - Update consultation
+    static async updateConsultation(consultationId, updates) {
+        try {
+            const consultation = await Consultation.findById(consultationId);
+            if (!consultation) {
+                return { success: false, message: 'Consultation not found' };
+            }
+
+            if (consultation.status === 'completed') {
+                return { success: false, message: 'Cannot update completed consultation' };
+            }
+
+            Object.assign(consultation, updates);
+            await consultation.save();
+
+            Logger.info('Consultation updated', { consultationId });
+            return { success: true, message: 'Consultation updated successfully', data: consultation };
+        } catch (error) {
+            Logger.error('Error updating consultation', error);
+            throw error;
+        }
+    }
+
+    // UPDATE - Complete consultation
+    static async completeConsultation(consultationId) {
+        try {
+            const consultation = await Consultation.findById(consultationId);
+            if (!consultation) {
+                return { success: false, message: 'Consultation not found' };
+            }
+
+            consultation.status = 'completed';
+            await consultation.save();
+
+            // Update related appointment if exists
+            if (consultation.terminId) {
+                await Termin.findByIdAndUpdate(consultation.terminId, { status: 'completed' });
+            }
+
+            Logger.info('Consultation completed', { consultationId });
+            return { success: true, message: 'Consultation completed successfully', data: consultation };
+        } catch (error) {
+            Logger.error('Error completing consultation', error);
+            throw error;
+        }
+    }
+
+    // DELETE - Delete consultation (soft delete)
+    static async deleteConsultation(consultationId) {
+        try {
+            const consultation = await Consultation.findById(consultationId);
+            if (!consultation) {
+                return { success: false, message: 'Consultation not found' };
+            }
+
+            if (consultation.status === 'completed') {
+                return { success: false, message: 'Cannot delete completed consultation' };
+            }
+
+            consultation.status = 'cancelled';
+            await consultation.save();
+
+            Logger.info('Consultation deleted', { consultationId });
+            return { success: true, message: 'Consultation deleted successfully' };
+        } catch (error) {
+            Logger.error('Error deleting consultation', error);
+            throw error;
+        }
+    }
+}
+
+export default ConsultationService;

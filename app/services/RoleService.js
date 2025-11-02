@@ -1,96 +1,117 @@
-import BaseService from '../abstractions/BaseServise.js';
 import Role from '../models/Role.js';
 import Logger from '../logs/Logger.js';
 
-class RoleService extends BaseService {
-    constructor() {
-        super(Role);
-    }
-
+class RoleService {
     async getAllRoles() {
         try {
-            return await Role.find({ isActive: true });
+            const roles = await Role.find().sort({ name: 1 });
+            return roles;
         } catch (error) {
-            Logger.error('Error in getAllRoles service:', error);
+            Logger.error('Error fetching roles', error);
             throw error;
         }
     }
 
-    async getRoleById(id) {
+    async getRoleById(roleId) {
         try {
-            return await Role.findById(id);
+            const role = await Role.findById(roleId);
+            if (!role) {
+                throw new Error('Role not found');
+            }
+            return role;
         } catch (error) {
-            Logger.error('Error in getRoleById service:', error);
+            Logger.error('Error fetching role by ID', error);
             throw error;
         }
     }
 
-    async createRole(data) {
+    async createRole(roleData) {
         try {
-            const role = new Role({
-                name: data.name,
-                description: data.description,
-                permissions: data.permissions,
-                isActive: true
+            const existingRole = await Role.findOne({ name: roleData.name });
+            if (existingRole) {
+                throw new Error('Role with this name already exists');
+            }
+
+            const role = new Role(roleData);
+            await role.save();
+
+            Logger.info('Role created successfully', {
+                roleId: role._id,
+                name: role.name
             });
-            return await role.save();
+
+            return role;
         } catch (error) {
-            Logger.error('Error in createRole service:', error);
+            Logger.error('Error creating role', error);
             throw error;
         }
     }
 
-    async updateRole(id, data) {
+    async updateRole(roleId, updateData) {
         try {
-            return await Role.findByIdAndUpdate(
-                id,
-                {
-                    $set: {
-                        name: data.name,
-                        description: data.description,
-                        permissions: data.permissions
-                    }
-                },
-                { new: true }
-            );
+            const role = await Role.findById(roleId);
+            if (!role) {
+                throw new Error('Role not found');
+            }
+
+            if (updateData.name && updateData.name !== role.name) {
+                const existingRole = await Role.findOne({ name: updateData.name });
+                if (existingRole) {
+                    throw new Error('Role name already in use');
+                }
+            }
+
+            Object.assign(role, updateData);
+            await role.save();
+
+            Logger.info('Role updated successfully', {
+                roleId: role._id
+            });
+
+            return role;
         } catch (error) {
-            Logger.error('Error in updateRole service:', error);
+            Logger.error('Error updating role', error);
             throw error;
         }
     }
 
-    async deleteRole(id) {
+    async deleteRole(roleId) {
         try {
-            // Soft delete by setting isActive to false
-            return await Role.findByIdAndUpdate(
-                id,
-                { $set: { isActive: false } },
-                { new: true }
-            );
+            const role = await Role.findById(roleId);
+            if (!role) {
+                throw new Error('Role not found');
+            }
+
+            await role.deleteOne();
+
+            Logger.info('Role deleted successfully', {
+                roleId: role._id
+            });
+
+            return role;
         } catch (error) {
-            Logger.error('Error in deleteRole service:', error);
+            Logger.error('Error deleting role', error);
             throw error;
         }
     }
 
-    async updateRolePermissions(id, permissions) {
+    async updateRolePermissions(roleId, permissions) {
         try {
-            return await Role.findByIdAndUpdate(
-                id,
-                { $set: { permissions } },
-                { new: true }
-            );
-        } catch (error) {
-            Logger.error('Error in updateRolePermissions service:', error);
-            throw error;
-        }
-    }
+            const role = await Role.findById(roleId);
+            if (!role) {
+                throw new Error('Role not found');
+            }
 
-    async getRoleByName(name) {
-        try {
-            return await Role.findOne({ name, isActive: true });
+            role.permissions = permissions;
+            await role.save();
+
+            Logger.info('Role permissions updated successfully', {
+                roleId: role._id
+            });
+
+            return role;
         } catch (error) {
-            Logger.error('Error in getRoleByName service:', error);
+            Logger.error('Error updating role permissions', error);
             throw error;
         }
     }
