@@ -178,6 +178,84 @@ const defaultRoles = [
       }
     },
     isActive: true
+  },
+  {
+    name: ROLES.PHARMACIST,
+    description: 'Pharmacist',
+    permissions: {
+      users: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        suspend: false,
+        manageRoles: false
+      },
+      patients: {
+        create: false,
+        read: 'assigned', // Can view patients with assigned prescriptions
+        update: false,
+        delete: false
+      },
+      prescriptions: {
+        create: false,
+        read: 'assigned', // Can view prescriptions assigned to their pharmacy
+        update: true, // Can update prescription status (in-preparation, ready, dispensed)
+        delete: false
+      },
+      pharmacies: {
+        create: false,
+        read: 'own', // Can view their own pharmacy
+        update: 'own', // Can update their pharmacy info
+        delete: false
+      },
+      roles: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false
+      }
+    },
+    isActive: true
+  },
+  {
+    name: ROLES.LAB_TECHNICIAN,
+    description: 'Laboratory Technician',
+    permissions: {
+      users: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false,
+        suspend: false,
+        manageRoles: false
+      },
+      patients: {
+        create: false,
+        read: 'assigned', // Can view patients with lab orders
+        update: false,
+        delete: false
+      },
+      labOrders: {
+        create: false,
+        read: 'assigned', // Can view lab orders for their laboratory
+        update: true, // Can update order status, add results
+        delete: false
+      },
+      laboratories: {
+        create: false,
+        read: 'own', // Can view their own laboratory
+        update: 'own', // Can update their laboratory info
+        delete: false
+      },
+      roles: {
+        create: false,
+        read: false,
+        update: false,
+        delete: false
+      }
+    },
+    isActive: true
   }
 ];
 

@@ -7,8 +7,8 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
  */
 export const errorHandler = (error, req, res, next) => {
   
-    let statusCode = error.statusCode ;
-    let message = error.message ;
+    let statusCode = error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
+    let message = error.message || 'Internal Server Error';
     let errors = error.errors;
 
     // Handle Mongoose validation errors

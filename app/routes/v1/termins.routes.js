@@ -13,14 +13,14 @@ const terminController = new TerminController();
 // Public/authenticated routes
 
 /**
- * GET /api/v1/termins/available?date=2025-10-20
- * Get available doctors and their free slots for a specific date
+ * GET /api/v1/termins/available?date=2025-10-20&startTime=09:00&endTime=09:30
+ * Get available doctors for a specific date and time slot
  * Accessible by: All authenticated users
  */
 router.get(
     '/available',
     authenticate,
-    catchAsync(terminController.getAvailableDoctors.bind(terminController))
+    catchAsync(terminController.findAvailableDoctors.bind(terminController))
 );
 
 /**
@@ -33,7 +33,7 @@ router.get(
     '/my',
     authenticate,
     requireRole([ROLES.DOCTOR, ROLES.PATIENT]),
-    catchAsync(terminController.getMyTermins.bind(terminController))
+    catchAsync(terminController.getUpcomingTermins.bind(terminController))
 );
 
 /**

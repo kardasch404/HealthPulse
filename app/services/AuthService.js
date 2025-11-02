@@ -1,134 +1,220 @@
-import bcrypt from 'bcrypt';
 import User from '../models/User.js';
 import Role from '../models/Role.js';
-import BaseService from '../abstractions/BaseServise.js';
-import Logger from '../logs/Logger.js';
+import RefreshToken from '../models/RefreshToken.js';
+import bcrypt from 'bcrypt';
 import JWTUtil from '../utils/jwt.js';
+import Logger from '../logs/Logger.js';
+import { LOG_ACTIONS } from '../logs/logLevels.js';
 
-class AuthService extends BaseService {
-    constructor() {
-        super(User);
-    }
+class AuthService {
+    async register(userData) {
+        try {
+            const { fname, lname, email, password } = userData;
 
-    async register (data)
-    {
-        try{
-         
-            const hashedPassword = await bcrypt.hash(data.password, 10);
-
-            let patientRole = await Role.findOne({ name: 'patient' });
-            if (!patientRole) {
-                patientRole = await Role.create({
-                    name: 'patient',
-                    description: 'Default patient role',
-                    isActive: true
-                });
+            const existingUser = await User.findOne({ email });
+            if (existingUser) {
+                throw new Error('User with this email already exists');
             }
 
-            const image = 'default-image.png';
-            const userData = {
-                fname: data.fname,
-                lname: data.lname,
-                email: data.email,
-                image: image,
+            const hashedPassword = await bcrypt.hash(password, 10);
+
+            const patientRole = await Role.findOne({ name: 'patient' });
+            if (!patientRole) {
+                throw new Error('Default role not found');
+            }
+
+            const user = new User({
+                fname,
+                lname,
+                email,
                 password: hashedPassword,
-                birthDate: data.birthDate,
-                role: patientRole._id,
-            };
+                roleId: patientRole._id
+            });
 
-            if (data.phone) userData.phone = data.phone;
-            if (data.cni) userData.cni = data.cni;
+            await user.save();
 
-            const user = await User.create(userData);
+            Logger.info(LOG_ACTIONS.USER_CREATED, {
+                userId: user._id,
+                email: user.email
+            });
 
             return user;
-
-        }catch(error)
-        {
-            Logger.error('Error in register service:', error);
-            throw new Error('Error registering user: ' + error.message);
+        } catch (error) {
+            Logger.error(LOG_ACTIONS.REGISTRATION_FAILED, error);
+            throw error;
         }
     }
 
-    async login (data)
-    {
+    async login(credentials) {
         try {
-            const { email, password } = data;
-            
+            const { email, password } = credentials;
+
             const user = await User.findOne({ email }).populate('roleId');
             if (!user) {
-                throw new Error('User not found');
+                throw new Error('Invalid email or password');
             }
 
-            const isMatch = await bcrypt.compare(password, user.password);
-            if (!isMatch) {
-                throw new Error('Invalid password');
+            if (!user.isActive) {
+                throw new Error('Account is inactive');
             }
 
-            const accessToken = JWTUtil.generateAccessToken(user._id, user.roleId.name);
-            const refreshToken = JWTUtil.generateRefreshToken(user._id);
+            const isPasswordValid = await user.verifyPassword(password);
+            if (!isPasswordValid) {
+                throw new Error('Invalid email or password');
+            }
+
+            const accessToken = JWTUtil.generateAccessToken(user._id.toString(), user.roleId.name);
+            const refreshToken = JWTUtil.generateRefreshToken(user._id.toString());
+
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
+
+            await RefreshToken.create({
+                userId: user._id,
+                token: refreshToken,
+                expiresAt
+            });
+
             user.lastLogin = new Date();
             await user.save();
 
+            Logger.info(LOG_ACTIONS.USER_LOGIN, {
+                userId: user._id,
+                email: user.email
+            });
+
             return {
-                accessToken,
-                refreshToken,
                 user: {
                     id: user._id,
+                    email: user.email,
                     fname: user.fname,
                     lname: user.lname,
-                    email: user.email,
                     role: user.roleId.name
+                },
+                tokens: {
+                    accessToken,
+                    refreshToken
                 }
             };
-
         } catch (error) {
-            Logger.error('Error in login service:', error);
-            throw new Error('Error logging in user: ' + error.message);
+            Logger.error(LOG_ACTIONS.LOGIN_FAILED, error);
+            throw error;
         }
     }
 
-    async refreshToken (refreshToken)
-    {
+    async refreshToken(refreshToken) {
         try {
             const decoded = JWTUtil.verifyRefreshToken(refreshToken);
-            
-            const user = await User.findById(decoded.userId).populate('role');
+
+            const storedToken = await RefreshToken.findOne({ 
+                token: refreshToken,
+                userId: decoded.userId 
+            });
+
+            if (!storedToken) {
+                throw new Error('Invalid refresh token');
+            }
+
+            if (storedToken.isExpired()) {
+                await RefreshToken.deleteOne({ _id: storedToken._id });
+                throw new Error('Refresh token expired');
+            }
+
+            const user = await User.findById(decoded.userId).populate('roleId');
+            if (!user || !user.isActive) {
+                throw new Error('User not found or inactive');
+            }
+
+            const newAccessToken = JWTUtil.generateAccessToken(user._id.toString(), user.roleId.name);
+            const newRefreshToken = JWTUtil.generateRefreshToken(user._id.toString());
+
+            const expiresAt = new Date();
+            expiresAt.setDate(expiresAt.getDate() + 7);
+
+            await RefreshToken.deleteOne({ _id: storedToken._id });
+            await RefreshToken.create({
+                userId: user._id,
+                token: newRefreshToken,
+                expiresAt
+            });
+
+            Logger.info(LOG_ACTIONS.TOKEN_REFRESHED, {
+                userId: user._id
+            });
+
+            return {
+                accessToken: newAccessToken,
+                refreshToken: newRefreshToken
+            };
+        } catch (error) {
+            Logger.error(LOG_ACTIONS.TOKEN_REFRESH_FAILED, error);
+            throw error;
+        }
+    }
+
+    async logout(userId) {
+        try {
+            await RefreshToken.deleteMany({ userId });
+
+            Logger.info(LOG_ACTIONS.USER_LOGOUT, {
+                userId
+            });
+        } catch (error) {
+            Logger.error(LOG_ACTIONS.LOGOUT_FAILED, error);
+            throw error;
+        }
+    }
+
+    async getUserById(userId) {
+        try {
+            const user = await User.findById(userId).populate('roleId');
             if (!user) {
                 throw new Error('User not found');
             }
-            const newAccessToken = JWTUtil.generateAccessToken(user._id, user.role.name);
 
             return {
-                accessToken: newAccessToken
+                id: user._id,
+                email: user.email,
+                fname: user.fname,
+                lname: user.lname,
+                phone: user.phone,
+                role: user.roleId.name,
+                isActive: user.isActive,
+                lastLogin: user.lastLogin,
+                createdAt: user.createdAt
             };
-
         } catch (error) {
-            Logger.error('Error in refresh token service:', error);
-            throw new Error('Error refreshing token: ' + error.message);
+            Logger.error('Error fetching user', error);
+            throw error;
         }
     }
 
-    async logout (userId)
-    {
+    async changePassword(userId, oldPassword, newPassword) {
         try {
             const user = await User.findById(userId);
-            if (user) {
-                user.lastLogout = new Date();
-                await user.save();
+            if (!user) {
+                throw new Error('User not found');
             }
 
-            return { message: 'Logged out successfully' };
+            const isPasswordValid = await user.verifyPassword(oldPassword);
+            if (!isPasswordValid) {
+                throw new Error('Current password is incorrect');
+            }
 
+            const hashedPassword = await bcrypt.hash(newPassword, 10);
+            user.password = hashedPassword;
+            await user.save();
+
+            await RefreshToken.deleteMany({ userId });
+
+            Logger.info('Password changed successfully', {
+                userId
+            });
         } catch (error) {
-            Logger.error('Error in logout service:', error);
-            throw new Error('Error logging out: ' + error.message);
+            Logger.error('Error changing password', error);
+            throw error;
         }
     }
-
 }
-
-
-
 
 export default AuthService;

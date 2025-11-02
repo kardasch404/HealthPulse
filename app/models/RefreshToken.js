@@ -14,10 +14,6 @@ const refreshTokenSchema = new mongoose.Schema({
     expiresAt: {
         type: Date,
         required: true
-    },
-    isRevoked: {
-        type: Boolean,
-        default: false
     }
 }, {
     timestamps: true
@@ -25,11 +21,6 @@ const refreshTokenSchema = new mongoose.Schema({
 
 refreshTokenSchema.methods.isExpired = function() {
     return Date.now() >= this.expiresAt;
-};
-
-refreshTokenSchema.methods.revoke = function() {
-    this.isRevoked = true;
-    return this.save();
 };
 
 refreshTokenSchema.index({ userId: 1 });
