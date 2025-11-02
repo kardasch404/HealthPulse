@@ -62,6 +62,41 @@ const consultationSchema = new mongoose.Schema({
         trim: true
     }],
 
+    // Vital Signs
+    vitalSigns: {
+        bloodPressure: { type: String },
+        temperature: { type: Number },
+        pulse: { type: Number },
+        respiratoryRate: { type: Number },
+        weight: { type: Number },
+        height: { type: Number },
+        oxygenSaturation: { type: Number },
+        painLevel: { type: Number, min: 0, max: 10 },
+        recordedAt: { type: Date, default: Date.now }
+    },
+
+    // Diagnosis
+    diagnosis: {
+        type: String,
+        trim: true
+    },
+    secondaryDiagnosis: [{
+        type: String,
+        trim: true
+    }],
+    icdCodes: [{
+        type: String,
+        trim: true
+    }],
+    severity: {
+        type: String,
+        enum: ['Mild', 'Moderate', 'Severe', 'Critical']
+    },
+    diagnosisNotes: {
+        type: String,
+        trim: true
+    },
+
     // Lab Tests & Imaging
     labTestsOrdered: [{
         testName: { type: String },
@@ -128,6 +163,13 @@ const consultationSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     }
+    ,
+    // Who created this consultation (could be the doctor, receptionist, etc.)
+    createdBy: {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: 'User',
+        required: false
+    }
 }, {
     timestamps: true,
     toJSON: { virtuals: true },
@@ -139,6 +181,7 @@ consultationSchema.index({ patientId: 1, consultationDate: -1 });
 consultationSchema.index({ doctorId: 1, consultationDate: -1 });
 consultationSchema.index({ status: 1 });
 consultationSchema.index({ appointmentId: 1 });
+consultationSchema.index({ createdBy: 1 });
 
 // Virtual for patient full name
 consultationSchema.virtual('patientName').get(function() {

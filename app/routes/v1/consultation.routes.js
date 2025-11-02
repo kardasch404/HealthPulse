@@ -17,9 +17,16 @@ router.post(
     (req, res) => consultationController.createConsultation(req, res)
 );
 
-// List doctor's consultations - Doctor only
+// Get all consultations with filters - Doctor, Admin, Nurse
 router.get(
     '/',
+    checkPermission(PERMISSIONS.VIEW_CONSULTATIONS),
+    (req, res) => consultationController.getAllConsultations(req, res)
+);
+
+// List doctor's own consultations - Doctor only
+router.get(
+    '/my',
     checkPermission(PERMISSIONS.MANAGE_CONSULTATIONS),
     (req, res) => consultationController.listMyConsultations(req, res)
 );

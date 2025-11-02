@@ -10,70 +10,72 @@ const prescriptionController = new PrescriptionController();
 // All routes require authentication
 router.use(authenticate);
 
-// Patient route - Get my prescriptions
+// REST API Routes following best practices
+
+// GET /prescriptions - List my prescriptions (context-aware based on user role)
 router.get(
-    '/my-prescriptions',
+    '/',
     checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
-    (req, res) => prescriptionController.getMyPrescriptions(req, res)
+    (req, res) => prescriptionController.listMyPrescriptions(req, res)
 );
 
-// Create prescription - Doctor only
+// POST /prescriptions - Create new prescription (Doctor only)
 router.post(
     '/',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
     (req, res) => prescriptionController.createPrescription(req, res)
 );
 
-// List doctor's prescriptions - Doctor only
+// GET /prescriptions/my-prescriptions - Alternative route for patient convenience
 router.get(
-    '/',
-    checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
-    (req, res) => prescriptionController.listMyPrescriptions(req, res)
+    '/my-prescriptions',
+    checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
+    (req, res) => prescriptionController.getMyPrescriptions(req, res)
 );
 
-// Get prescription by ID - Doctor, Patient (own), Admin
+// GET /prescriptions/:id - Get specific prescription by ID
 router.get(
     '/:id',
     checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
     (req, res) => prescriptionController.getPrescriptionById(req, res)
 );
 
-// Update prescription (draft only) - Doctor only
+// PUT /prescriptions/:id - Update prescription (draft only, Doctor only)
 router.put(
     '/:id',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
     (req, res) => prescriptionController.updatePrescription(req, res)
 );
 
-// Add medication to prescription - Doctor only
-router.post(
+// PUT /prescriptions/:id/medications - Add medication to prescription (changed from POST to PUT)
+router.put(
     '/:id/medications',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
     (req, res) => prescriptionController.addMedication(req, res)
 );
 
-// Sign prescription - Doctor only
-router.patch(
-    '/:id/sign',
-    checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
-    (req, res) => prescriptionController.signPrescription(req, res)
-);
-
-// Assign to pharmacy - Doctor only
-router.patch(
-    '/:id/assign-pharmacy',
-    checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
-    (req, res) => prescriptionController.assignToPharmacy(req, res)
-);
-
-// View prescription status - Doctor, Patient (own)
+// GET /prescriptions/:id/status - Get prescription status
 router.get(
     '/:id/status',
     checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
     (req, res) => prescriptionController.getPrescriptionStatus(req, res)
 );
 
-// Cancel prescription - Doctor only
+// PATCH /prescriptions/:id/sign - Sign prescription (Doctor only)
+router.patch(
+    '/:id/sign',
+    checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
+    (req, res) => prescriptionController.signPrescription(req, res)
+);
+
+// PATCH /prescriptions/:id/assign-pharmacy - Assign to pharmacy (Doctor only)
+router.patch(
+    '/:id/assign-pharmacy',
+    checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
+    (req, res) => prescriptionController.assignToPharmacy(req, res)
+);
+
+// PATCH /prescriptions/:id/cancel - Cancel prescription (Doctor only)
 router.patch(
     '/:id/cancel',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),

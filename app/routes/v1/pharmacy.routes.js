@@ -22,7 +22,7 @@ router.use(authenticate);
  */
 router.post('/', 
     requireAdmin,
-    catchAsync((req, res) => pharmacyController.createPharmacy(req, res))
+    catchAsync((req, res) => pharmacyController.registerPharmacy(req, res))
 );
 
 /**
@@ -51,6 +51,15 @@ router.get('/nearby',
  */
 router.get('/search/services', 
     catchAsync((req, res) => pharmacyController.searchByServices(req, res))
+);
+
+/**
+ * @route   GET /api/v1/pharmacies/search
+ * @desc    Search pharmacies by name/location
+ * @access  All authenticated users
+ */
+router.get('/search', 
+    catchAsync((req, res) => pharmacyController.searchPharmacies(req, res))
 );
 
 /**

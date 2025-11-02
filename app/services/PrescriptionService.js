@@ -47,7 +47,7 @@ class PrescriptionService {
                 .populate('patientId', 'fname lname email phone')
                 .populate('doctorId', 'fname lname email specialization')
                 .populate('consultationId')
-                .populate('pharmacyId', 'name address phone');
+                .populate('assignedPharmacyId', 'name address phone');
 
             if (!prescription) {
                 return { success: false, message: 'Prescription not found' };
@@ -67,7 +67,7 @@ class PrescriptionService {
 
             if (patientId) query.patientId = patientId;
             if (doctorId) query.doctorId = doctorId;
-            if (pharmacyId) query.pharmacyId = pharmacyId;
+            if (pharmacyId) query.assignedPharmacyId = pharmacyId;
             if (status) query.status = status;
             if (dateFrom || dateTo) {
                 query.createdAt = {};
@@ -80,7 +80,7 @@ class PrescriptionService {
                 Prescription.find(query)
                     .populate('patientId', 'fname lname')
                     .populate('doctorId', 'fname lname')
-                    .populate('pharmacyId', 'name')
+                    .populate('assignedPharmacyId', 'name')
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),
@@ -132,10 +132,52 @@ class PrescriptionService {
                 return { success: false, message: 'Can only update draft prescriptions' };
             }
 
+            Logger.info('Updating prescription', { 
+                prescriptionId, 
+                updates,
+                currentMedications: prescription.medications.map(m => ({ id: m._id, name: m.medicationName }))
+            });
+
+            // Handle medication updates specially
+            if (updates.medications && Array.isArray(updates.medications)) {
+                // If medications are provided, update them properly
+                for (const medicationUpdate of updates.medications) {
+                    if (medicationUpdate.id) {
+                        // Update existing medication by ID
+                        const medication = prescription.medications.id(medicationUpdate.id);
+                        Logger.info('Looking for medication', { 
+                            searchId: medicationUpdate.id, 
+                            found: !!medication,
+                            availableIds: prescription.medications.map(m => m._id.toString())
+                        });
+                        
+                        if (medication) {
+                            // Only update provided fields, keep existing ones
+                            Object.keys(medicationUpdate).forEach(key => {
+                                if (key !== 'id') {
+                                    medication[key] = medicationUpdate[key];
+                                }
+                            });
+                            Logger.info('Updated medication', { medicationId: medication._id, updatedFields: Object.keys(medicationUpdate) });
+                        } else {
+                            Logger.warn('Medication not found', { id: medicationUpdate.id });
+                            return { success: false, message: `Medication with ID ${medicationUpdate.id} not found` };
+                        }
+                    } else {
+                        // If no ID provided, treat as new medication (must have all required fields)
+                        prescription.medications.push(medicationUpdate);
+                        Logger.info('Added new medication', { medication: medicationUpdate });
+                    }
+                }
+                // Remove medications from updates to avoid overwriting
+                delete updates.medications;
+            }
+
+            // Update other fields
             Object.assign(prescription, updates);
             await prescription.save();
 
-            Logger.info('Prescription updated', { prescriptionId });
+            Logger.info('Prescription updated successfully', { prescriptionId });
             return { success: true, message: 'Prescription updated successfully', data: prescription };
         } catch (error) {
             Logger.error('Error updating prescription', error);
@@ -162,9 +204,8 @@ class PrescriptionService {
                 return { success: false, message: 'Cannot sign empty prescription' };
             }
 
-            prescription.status = 'pending';
-            prescription.signedAt = new Date();
-            await prescription.save();
+            // Use the model's signPrescription method which sets the correct status
+            await prescription.signPrescription(doctorId);
 
             Logger.info('Prescription signed', { prescriptionId });
             return { success: true, message: 'Prescription signed successfully', data: prescription };
@@ -193,7 +234,8 @@ class PrescriptionService {
                 return { success: false, message: 'Pharmacy is not active' };
             }
 
-            prescription.pharmacyId = pharmacyId;
+            prescription.assignedPharmacyId = pharmacyId;
+            prescription.assignedAt = new Date();
             prescription.status = 'assigned';
             await prescription.save();
 
@@ -257,7 +299,7 @@ class PrescriptionService {
     // For pharmacist
     static async getPharmacyPrescriptions(pharmacyId, status = null) {
         try {
-            const query = { pharmacyId };
+            const query = { assignedPharmacyId: pharmacyId };
             if (status) query.status = status;
 
             const prescriptions = await Prescription.find(query)

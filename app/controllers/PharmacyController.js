@@ -240,6 +240,166 @@ class PharmacyController extends BaseController {
             return this.handleError(res, error);
         }
     }
+
+    /**
+     * Get pharmacy statistics
+     * @route GET /api/v1/pharmacies/stats
+     * @access Admin only
+     */
+    async getPharmacyStats(req, res) {
+        try {
+            const result = await PharmacyService.getPharmacyStats();
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Pharmacy statistics retrieved successfully',
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Get nearby pharmacies
+     * @route GET /api/v1/pharmacies/nearby
+     * @access All authenticated users
+     */
+    async getNearbyPharmacies(req, res) {
+        try {
+            const { latitude, longitude, radius = 10 } = req.query;
+
+            if (!latitude || !longitude) {
+                return this.handleError(res, {
+                    message: 'Latitude and longitude are required',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            const result = await PharmacyService.getNearbyPharmacies(
+                parseFloat(latitude),
+                parseFloat(longitude),
+                parseFloat(radius)
+            );
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Nearby pharmacies retrieved successfully',
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Search pharmacies by services
+     * @route GET /api/v1/pharmacies/search/services
+     * @access All authenticated users
+     */
+    async searchByServices(req, res) {
+        try {
+            const { services, city } = req.query;
+
+            if (!services) {
+                return this.handleError(res, {
+                    message: 'Services parameter is required',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            const serviceArray = services.split(',');
+            const result = await PharmacyService.searchByServices(serviceArray, city);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Pharmacies found successfully',
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Verify pharmacy
+     * @route PATCH /api/v1/pharmacies/:id/verify
+     * @access Admin only
+     */
+    async verifyPharmacy(req, res) {
+        try {
+            const { id } = req.params;
+            
+            const result = await PharmacyService.verifyPharmacy(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: result.message,
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Add pharmacist to pharmacy
+     * @route POST /api/v1/pharmacies/:id/pharmacists
+     * @access Admin only
+     */
+    async addPharmacist(req, res) {
+        try {
+            const { id } = req.params;
+            const pharmacistData = req.body;
+
+            if (!pharmacistData.userId && !pharmacistData.name) {
+                return this.handleError(res, {
+                    message: 'Pharmacist user ID or name is required',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+            
+            const result = await PharmacyService.addPharmacist(id, pharmacistData);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: result.message,
+                data: result.data
+            }, HTTP_STATUS.CREATED);
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
 }
 
 export default PharmacyController;

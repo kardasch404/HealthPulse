@@ -127,7 +127,7 @@ class PrescriptionController extends BaseController {
                 role === 'admin' ||
                 prescription.doctorId._id.toString() === userId ||
                 prescription.patientId._id.toString() === userId ||
-                (role === 'pharmacist' && prescription.pharmacyId && prescription.pharmacyId._id.toString() === userId);
+                (role === 'pharmacist' && prescription.assignedPharmacyId && prescription.assignedPharmacyId._id.toString() === userId);
 
             if (!canAccess) {
                 return this.handleError(res, {
@@ -298,6 +298,113 @@ class PrescriptionController extends BaseController {
 
             return this.handleSuccess(res, {
                 message: result.message
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * List my prescriptions (for current user)
+     * @route GET /api/v1/prescriptions
+     * @access Doctor, Patient
+     */
+    async listMyPrescriptions(req, res) {
+        try {
+            const { userId, role } = req.user;
+            const { page, limit, status } = req.query;
+            
+            let filters = {};
+            
+            // Based on role, filter prescriptions
+            if (role === 'doctor') {
+                filters.doctorId = userId;
+            } else if (role === 'patient') {
+                filters.patientId = userId;
+            } else if (role === 'pharmacist') {
+                // Get pharmacy ID from user profile or request
+                filters.pharmacyId = req.user.pharmacyId || req.query.pharmacyId;
+            }
+            
+            if (status) filters.status = status;
+
+            const result = await PrescriptionService.getAllPrescriptions(
+                filters,
+                parseInt(page) || 1,
+                parseInt(limit) || 10
+            );
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Prescriptions retrieved successfully',
+                data: result.data,
+                pagination: result.pagination
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Get my prescriptions (alias for listMyPrescriptions)
+     * @route GET /api/v1/prescriptions/my-prescriptions
+     * @access Doctor, Patient
+     */
+    async getMyPrescriptions(req, res) {
+        return this.listMyPrescriptions(req, res);
+    }
+
+    /**
+     * Get prescription status
+     * @route GET /api/v1/prescriptions/:id/status
+     * @access Doctor, Patient (own), Pharmacist (assigned)
+     */
+    async getPrescriptionStatus(req, res) {
+        try {
+            const { id } = req.params;
+            
+            const result = await PrescriptionService.getPrescriptionById(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            // Check authorization
+            const { userId, role } = req.user;
+            const prescription = result.data;
+            
+            const canAccess = 
+                role === 'admin' ||
+                prescription.doctorId._id.toString() === userId ||
+                prescription.patientId._id.toString() === userId ||
+                (role === 'pharmacist' && prescription.assignedPharmacyId && prescription.assignedPharmacyId._id.toString() === userId);
+
+            if (!canAccess) {
+                return this.handleError(res, {
+                    message: 'You do not have permission to view this prescription status',
+                    statusCode: HTTP_STATUS.FORBIDDEN
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Prescription status retrieved successfully',
+                data: {
+                    id: prescription._id,
+                    status: prescription.status,
+                    createdAt: prescription.createdAt,
+                    updatedAt: prescription.updatedAt,
+                    validUntil: prescription.validUntil,
+                    pharmacyId: prescription.assignedPharmacyId
+                }
             });
         } catch (error) {
             return this.handleError(res, error);

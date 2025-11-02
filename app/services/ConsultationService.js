@@ -7,21 +7,21 @@ class ConsultationService {
     // CREATE - Create new consultation
     static async createConsultation(data) {
         try {
-            const { terminId, patientId, doctorId, chiefComplaint, symptoms, createdBy } = data;
+            const { appointmentId, patientId, doctorId, chiefComplaint, symptoms, createdBy } = data;
 
-            // Verify termin exists and belongs to this patient/doctor
-            if (terminId) {
-                const termin = await Termin.findById(terminId);
-                if (!termin) {
+            // Verify appointment exists and belongs to this patient/doctor
+            if (appointmentId) {
+                const appointment = await Termin.findById(appointmentId);
+                if (!appointment) {
                     return { success: false, message: 'Appointment not found' };
                 }
-                if (termin.patientId.toString() !== patientId || termin.doctorId.toString() !== doctorId) {
+                if (appointment.patientId.toString() !== patientId || appointment.doctorId.toString() !== doctorId) {
                     return { success: false, message: 'Appointment does not match patient/doctor' };
                 }
             }
 
             const consultation = new Consultation({
-                terminId,
+                appointmentId,
                 patientId,
                 doctorId,
                 chiefComplaint,
@@ -46,7 +46,8 @@ class ConsultationService {
             const consultation = await Consultation.findById(consultationId)
                 .populate('patientId', 'fname lname email phone')
                 .populate('doctorId', 'fname lname email specialization')
-                .populate('terminId')
+                .populate('createdBy', 'fname lname email')
+                .populate('appointmentId')
                 .populate('prescriptionId');
 
             if (!consultation) {
@@ -80,7 +81,8 @@ class ConsultationService {
                 Consultation.find(query)
                     .populate('patientId', 'fname lname email phone')
                     .populate('doctorId', 'fname lname specialization')
-                    .populate('terminId')
+                    .populate('createdBy', 'fname lname email')
+                    .populate('appointmentId')
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),
@@ -108,7 +110,8 @@ class ConsultationService {
 
             const consultations = await Consultation.find(query)
                 .populate('patientId', 'fname lname phone')
-                .populate('terminId')
+                .populate('appointmentId')
+                .populate('createdBy', 'fname lname email')
                 .sort({ createdAt: -1 });
 
             return { success: true, data: consultations };
@@ -127,6 +130,7 @@ class ConsultationService {
             const consultations = await Consultation.find(query)
                 .populate('doctorId', 'fname lname specialization')
                 .populate('prescriptionId')
+                .populate('createdBy', 'fname lname email')
                 .sort({ createdAt: -1 });
 
             return { success: true, data: consultations };
@@ -171,8 +175,8 @@ class ConsultationService {
             await consultation.save();
 
             // Update related appointment if exists
-            if (consultation.terminId) {
-                await Termin.findByIdAndUpdate(consultation.terminId, { status: 'completed' });
+            if (consultation.appointmentId) {
+                await Termin.findByIdAndUpdate(consultation.appointmentId, { status: 'completed' });
             }
 
             Logger.info('Consultation completed', { consultationId });

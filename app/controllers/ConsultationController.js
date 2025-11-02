@@ -200,6 +200,73 @@ class ConsultationController extends BaseController {
     }
 
     /**
+     * Add vital signs to consultation
+     * @route POST /api/v1/consultations/:id/vital-signs
+     * @access Doctor only
+     */
+    async addVitalSigns(req, res) {
+        try {
+            const { id } = req.params;
+            const vitalSigns = req.body;
+            
+            // Update consultation with vital signs
+            const updateData = { vitalSigns };
+            const result = await ConsultationService.updateConsultation(id, updateData);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Vital signs added successfully',
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Add diagnosis to consultation
+     * @route POST /api/v1/consultations/:id/diagnosis
+     * @access Doctor only
+     */
+    async addDiagnosis(req, res) {
+        try {
+            const { id } = req.params;
+            const diagnosisData = req.body;
+            
+            // Update consultation with diagnosis
+            const updateData = { 
+                diagnosis: diagnosisData.primaryDiagnosis,
+                secondaryDiagnosis: diagnosisData.secondaryDiagnosis,
+                icdCodes: diagnosisData.icdCodes,
+                severity: diagnosisData.severity,
+                diagnosisNotes: diagnosisData.notes
+            };
+            
+            const result = await ConsultationService.updateConsultation(id, updateData);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Diagnosis added successfully',
+                data: result.data
+            });
+        } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
      * Get patient consultation history
      * @route GET /api/v1/consultations/patient/:patientId/history
      * @access Doctor only

@@ -6,11 +6,16 @@
   "scripts": {
     "start": "node ./bin/www.js",
     "dev": "nodemon ./bin/www.js",
-    "seed": "node ./app/database/seeders/seed.js"
+    "seed": "node ./app/database/seeders/seed.js",
+    "test": "mocha --recursive app/tests --timeout 10000",
+    "test:unit": "mocha app/tests/unit --timeout 5000",
+    "test:integration": "mocha app/tests/integration --timeout 10000",
+    "test:e2e": "mocha app/tests/e2e --timeout 15000",
+    "test:watch": "mocha --recursive app/tests --watch --timeout 10000"
   },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
     "bull": "^4.16.5",
     "cookie-parser": "~1.4.4",
     "debug": "~2.6.9",
@@ -20,12 +25,16 @@
     "jade": "~1.11.0",
     "joi": "^18.0.1",
     "jsonwebtoken": "^9.0.2",
+    "minio": "^8.0.6",
     "mongoose": "^7.8.7",
     "morgan": "~1.9.1",
     "nodemailer": "^7.0.9",
-    "redis": "^5.8.3"
+    "redis": "^5.9.0"
   },
   "devDependencies": {
-    "nodemon": "^3.1.10"
+    "chai": "^6.2.0",
+    "mocha": "^11.7.4",
+    "nodemon": "^3.1.10",
+    "supertest": "^7.1.4"
   }
 }

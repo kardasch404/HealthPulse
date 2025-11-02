@@ -130,6 +130,116 @@ class PharmacyService {
             throw error;
         }
     }
+
+    static async getPharmacyStats() {
+        try {
+            const [total, active, suspended, pending] = await Promise.all([
+                Pharmacy.countDocuments(),
+                Pharmacy.countDocuments({ status: 'active' }),
+                Pharmacy.countDocuments({ status: 'suspended' }),
+                Pharmacy.countDocuments({ status: 'pending_approval' })
+            ]);
+
+            const stats = {
+                total,
+                active,
+                suspended,
+                pending,
+                withDelivery: await Pharmacy.countDocuments({ 'deliveryService.available': true }),
+                with24HService: await Pharmacy.countDocuments({ services: '24h_service' })
+            };
+
+            return { success: true, data: stats };
+        } catch (error) {
+            Logger.error('Error getting pharmacy stats', error);
+            throw error;
+        }
+    }
+
+    static async getNearbyPharmacies(latitude, longitude, radius) {
+        try {
+            const pharmacies = await Pharmacy.find({
+                status: 'active',
+                'address.coordinates': {
+                    $near: {
+                        $geometry: {
+                            type: 'Point',
+                            coordinates: [longitude, latitude]
+                        },
+                        $maxDistance: radius * 1000 // Convert km to meters
+                    }
+                }
+            }).limit(20);
+
+            return { success: true, data: pharmacies };
+        } catch (error) {
+            Logger.error('Error getting nearby pharmacies', error);
+            throw error;
+        }
+    }
+
+    static async searchByServices(services, city) {
+        try {
+            const query = {
+                status: 'active',
+                services: { $in: services }
+            };
+
+            if (city) {
+                query['address.city'] = new RegExp(city, 'i');
+            }
+
+            const pharmacies = await Pharmacy.find(query).limit(50);
+
+            return { success: true, data: pharmacies };
+        } catch (error) {
+            Logger.error('Error searching pharmacies by services', error);
+            throw error;
+        }
+    }
+
+    static async verifyPharmacy(pharmacyId) {
+        try {
+            const pharmacy = await Pharmacy.findByIdAndUpdate(
+                pharmacyId,
+                { 
+                    status: 'active',
+                    verifiedAt: new Date()
+                },
+                { new: true }
+            );
+            
+            if (!pharmacy) {
+                return { success: false, message: 'Pharmacy not found' };
+            }
+            
+            Logger.info('Pharmacy verified', { pharmacyId });
+            return { success: true, message: 'Pharmacy verified successfully', data: pharmacy };
+        } catch (error) {
+            Logger.error('Error verifying pharmacy', error);
+            throw error;
+        }
+    }
+
+    static async addPharmacist(pharmacyId, pharmacistData) {
+        try {
+            const pharmacy = await Pharmacy.findByIdAndUpdate(
+                pharmacyId,
+                { $push: { pharmacists: pharmacistData } },
+                { new: true, runValidators: true }
+            );
+            
+            if (!pharmacy) {
+                return { success: false, message: 'Pharmacy not found' };
+            }
+            
+            Logger.info('Pharmacist added to pharmacy', { pharmacyId, pharmacistData });
+            return { success: true, message: 'Pharmacist added successfully', data: pharmacy };
+        } catch (error) {
+            Logger.error('Error adding pharmacist', error);
+            throw error;
+        }
+    }
 }
 
 export default PharmacyService;
