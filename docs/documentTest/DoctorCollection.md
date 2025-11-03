@@ -56,15 +56,18 @@ Authorization: Bearer {{access_token}}
 **Query Parameters:**
 - `week` (optional): Week start date (YYYY-MM-DD), defaults to current week
 
-#### **Check My Availability**
+#### **Find Available Doctors**
 ```http
-GET {{base_url}}/api/v1/termins/doctor/{{doctor_id}}/availability?date={{date}}
+GET {{base_url}}/api/v1/termins/available?date=2025-11-03&startTime=09:00&endTime=10:00
 Authorization: Bearer {{access_token}}
 ```
 
 **Query Parameters:**
 - `date` (required): Date to check (YYYY-MM-DD)
-- `duration` (optional): Appointment duration in minutes (default: 30)
+- `startTime` (required): Start time (HH:mm format)
+- `endTime` (required): End time (HH:mm format)
+
+**Note:** All three parameters (date, startTime, endTime) are required for this endpoint.
 
 #### **View Upcoming Appointments**
 ```http
@@ -454,7 +457,7 @@ Content-Type: application/json
 
 #### **Sign Prescription**
 ```http
-POST {{base_url}}/api/v1/prescriptions/{{prescription_id}}/sign
+PUT {{base_url}}/api/v1/prescriptions/{{prescription_id}}/sign
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 ```
@@ -611,9 +614,11 @@ Content-Type: application/json
 
 #### **View My Profile**
 ```http
-GET {{base_url}}/api/v1/users/{{doctor_id}}
+GET {{base_url}}/api/v1/users/me
 Authorization: Bearer {{access_token}}
 ```
+
+**Note:** Use `/users/me` to get the currently authenticated user's profile.
 
 #### **Update My Profile**
 ```http
@@ -654,6 +659,8 @@ Content-Type: application/json
   "confirmPassword": "NewDoctor@456"
 }
 ```
+
+**Note:** Password must meet security requirements (minimum 8 characters, include uppercase, lowercase, number, and special character).
 
 ---
 
