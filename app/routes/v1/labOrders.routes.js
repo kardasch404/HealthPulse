@@ -5,6 +5,7 @@ import { checkPermission } from '../../middlewares/permission.js';
 import { validate } from '../../middlewares/validation.js';
 import LabOrderValidator from '../../validators/LabOrderValidator.js';
 import { PERMISSIONS } from '../../constants/roles.js';
+import upload from '../../middlewares/upload.js';
 
 const router = express.Router();
 const labOrderController = new LabOrderController();
@@ -126,6 +127,51 @@ router.get(
     '/statistics/overview',
     checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
     (req, res) => labOrderController.getStatistics(req, res)
+);
+
+/**
+ * @route   POST /api/v1/lab-orders/:id/upload-results
+ * @desc    Upload lab results as JSON
+ * @access  Lab Technician
+ */
+router.post(
+    '/:id/upload-results',
+    checkPermission(PERMISSIONS.PROCESS_LAB_ORDERS),
+    (req, res) => labOrderController.uploadLabResultsJSON(req, res)
+);
+
+/**
+ * @route   POST /api/v1/lab-orders/:id/upload-report
+ * @desc    Upload lab report PDF
+ * @access  Lab Technician
+ */
+router.post(
+    '/:id/upload-report',
+    checkPermission(PERMISSIONS.PROCESS_LAB_ORDERS),
+    upload.single('file'),
+    (req, res) => labOrderController.uploadLabReportPDF(req, res)
+);
+
+/**
+ * @route   POST /api/v1/lab-orders/:id/validate
+ * @desc    Mark lab order as validated
+ * @access  Lab Technician
+ */
+router.post(
+    '/:id/validate',
+    checkPermission(PERMISSIONS.PROCESS_LAB_ORDERS),
+    (req, res) => labOrderController.validateLabOrder(req, res)
+);
+
+/**
+ * @route   GET /api/v1/lab-orders/:id/result-history
+ * @desc    Get result history
+ * @access  Doctor, Lab Technician
+ */
+router.get(
+    '/:id/result-history',
+    checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
+    (req, res) => labOrderController.getResultHistory(req, res)
 );
 
 export default router;

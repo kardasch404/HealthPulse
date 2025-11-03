@@ -1,5 +1,6 @@
 import BaseController from '../abstractions/BaseController.js';
 import LabOrderService from '../services/LabOrderService.js';
+import DocumentService from '../services/DocumentService.js';
 import { HTTP_STATUS } from '../constants/statusCodes.js';
 import Logger from '../logs/Logger.js';
 
@@ -386,6 +387,187 @@ class LabOrderController extends BaseController {
             });
         } catch (error) {
             Logger.error('Error in getStatistics controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Upload lab results as JSON
+     * @route POST /api/v1/lab-orders/:id/upload-results
+     * @access Lab Technician
+     */
+    async uploadLabResultsJSON(req, res) {
+        try {
+            const { id } = req.params;
+            const resultsData = req.body;
+            const userId = req.user.userId;
+
+            // Get lab order first
+            const labOrderResult = await LabOrderService.getLabOrderById(id);
+            if (!labOrderResult.success) {
+                return this.handleError(res, {
+                    message: labOrderResult.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            const labOrder = labOrderResult.data;
+
+            // Update test results
+            for (const testResult of resultsData.tests) {
+                await LabOrderService.addTestResults(id, testResult.testId, {
+                    results: testResult.results,
+                    interpretation: testResult.interpretation,
+                    criticalValues: testResult.criticalValues,
+                    resultNotes: testResult.resultNotes
+                }, userId);
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Lab results uploaded successfully',
+                data: { labOrderId: id }
+            });
+        } catch (error) {
+            Logger.error('Error in uploadLabResultsJSON controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Upload lab report PDF
+     * @route POST /api/v1/lab-orders/:id/upload-report
+     * @access Lab Technician
+     */
+    async uploadLabReportPDF(req, res) {
+        try {
+            const { id } = req.params;
+
+            if (!req.file) {
+                return this.handleError(res, {
+                    message: 'No file uploaded',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            // Get lab order
+            const labOrderResult = await LabOrderService.getLabOrderById(id);
+            if (!labOrderResult.success) {
+                return this.handleError(res, {
+                    message: labOrderResult.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            const labOrder = labOrderResult.data;
+
+            // Upload document
+            const documentMetadata = {
+                patientId: labOrder.patientId._id || labOrder.patientId,
+                documentType: 'lab_report',
+                title: req.body.title || `Lab Report - ${labOrder.orderNumber}`,
+                description: req.body.description || `Lab report for order ${labOrder.orderNumber}`,
+                labOrderId: id,
+                category: 'laboratory'
+            };
+
+            const uploadResult = await DocumentService.uploadDocument(
+                req.file,
+                documentMetadata,
+                req.user.userId
+            );
+
+            if (!uploadResult.success) {
+                return this.handleError(res, {
+                    message: uploadResult.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Lab report uploaded successfully',
+                data: uploadResult.data
+            }, HTTP_STATUS.CREATED);
+        } catch (error) {
+            Logger.error('Error in uploadLabReportPDF controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Mark lab order as validated
+     * @route POST /api/v1/lab-orders/:id/validate
+     * @access Lab Technician (Senior)
+     */
+    async validateLabOrder(req, res) {
+        try {
+            const { id } = req.params;
+            const { validationNotes } = req.body;
+            const userId = req.user.userId;
+
+            const result = await LabOrderService.updateLabOrderStatus(
+                id,
+                'completed',
+                userId,
+                `Validated by technician: ${validationNotes || 'No notes'}`
+            );
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Lab order validated successfully',
+                data: result.data
+            });
+        } catch (error) {
+            Logger.error('Error in validateLabOrder controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
+    /**
+     * Get result history for a lab order
+     * @route GET /api/v1/lab-orders/:id/result-history
+     * @access Doctor, Lab Technician
+     */
+    async getResultHistory(req, res) {
+        try {
+            const { id } = req.params;
+
+            const result = await LabOrderService.getLabOrderById(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            const labOrder = result.data;
+
+            // Extract status history and test update history
+            const history = {
+                orderNumber: labOrder.orderNumber,
+                statusHistory: labOrder.statusHistory || [],
+                tests: labOrder.tests.map(test => ({
+                    testName: test.testName,
+                    testCode: test.testCode,
+                    status: test.status,
+                    results: test.results,
+                    completedAt: test.completedAt,
+                    technician: test.technician
+                }))
+            };
+
+            return this.handleSuccess(res, {
+                message: 'Result history retrieved successfully',
+                data: history
+            });
+        } catch (error) {
+            Logger.error('Error in getResultHistory controller', error);
             return this.handleError(res, error);
         }
     }

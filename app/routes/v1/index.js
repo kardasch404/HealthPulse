@@ -9,6 +9,7 @@ import consultationRoutes from './consultation.routes.js';
 import prescriptionRoutes from './prescription.routes.js';
 import laboratoryRoutes from './laboratories.routes.js';
 import labOrderRoutes from './labOrders.routes.js';
+import documentRoutes from './documents.routes.js';
 
 const router = express.Router();
 
@@ -22,5 +23,6 @@ router.use('/consultations', consultationRoutes);
 router.use('/prescriptions', prescriptionRoutes);
 router.use('/laboratories', laboratoryRoutes);
 router.use('/lab-orders', labOrderRoutes);
+router.use('/documents', documentRoutes);
 
 export default router;
