@@ -547,8 +547,8 @@ DELETE /api/v1/documents/:id      # Delete document
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/healthpulse.git
-cd healthpulse
+git clone https://github.com/kardasch404/HealthPulse.git
+cd HealthPulse
 
 # Create environment file
 cp .env.example .env
@@ -569,8 +569,8 @@ docker-compose logs -f app
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/healthpulse.git
-cd healthpulse
+git clone https://github.com/kardasch404/HealthPulse.git
+cd HealthPulse
 
 # Install dependencies
 npm install
