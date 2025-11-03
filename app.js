@@ -7,6 +7,7 @@ import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
 import { connectDB } from './app/config/db.js';
+import minioClient from './app/config/minio.js';
 import indexRouter from './app/routes/index.js';
 import apiV1Routes from './app/routes/v1/index.js';
 import { errorHandler } from './app/middlewares/errorHandler.js';
@@ -16,6 +17,15 @@ const __dirname = dirname(__filename);
 
 // Initialize database connection
 await connectDB();
+
+// Initialize MinIO connection
+try {
+    await minioClient.connect();
+    console.log('[MINIO] MinIO connected and ready');
+} catch (error) {
+    console.error('[MINIO] Failed to connect to MinIO:', error.message);
+    console.warn('[MINIO] Document upload features will not be available');
+}
 
 const app = express();
 
