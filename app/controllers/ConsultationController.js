@@ -4,9 +4,8 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 
 class ConsultationController extends BaseController {
     /**
-     * Create consultation
      * @route POST /api/v1/consultations
-     * @access Doctor only
+     * @access Doctor
      */
     async createConsultation(req, res) {
         try {
@@ -34,11 +33,6 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * List my consultations (doctor's consultations)
-     * @route GET /api/v1/consultations
-     * @access Doctor only
-     */
     async listMyConsultations(req, res) {
         try {
             const doctorId = req.user.userId;
@@ -63,9 +57,8 @@ class ConsultationController extends BaseController {
     }
 
     /**
-     * Get all consultations with filters
-     * @route GET /api/v1/consultations/all
-     * @access Admin, Nurse
+     * @route GET /api/v1/consultations
+     * @access Doctor, Nurse
      */
     async getAllConsultations(req, res) {
         try {
@@ -102,9 +95,8 @@ class ConsultationController extends BaseController {
     }
 
     /**
-     * Get consultation details
      * @route GET /api/v1/consultations/:id
-     * @access Doctor, Patient (own), Admin
+     * @access Doctor, Nurse
      */
     async getConsultationById(req, res) {
         try {
@@ -119,7 +111,6 @@ class ConsultationController extends BaseController {
                 });
             }
 
-            // Check authorization
             const { userId, role } = req.user;
             const consultation = result.data;
             
@@ -146,9 +137,8 @@ class ConsultationController extends BaseController {
     }
 
     /**
-     * Update consultation
      * @route PUT /api/v1/consultations/:id
-     * @access Doctor only
+     * @access Doctor
      */
     async updateConsultation(req, res) {
         try {
@@ -172,11 +162,6 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * Complete consultation
-     * @route PATCH /api/v1/consultations/:id/complete
-     * @access Doctor only
-     */
     async completeConsultation(req, res) {
         try {
             const { id } = req.params;
@@ -199,17 +184,11 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * Add vital signs to consultation
-     * @route POST /api/v1/consultations/:id/vital-signs
-     * @access Doctor only
-     */
     async addVitalSigns(req, res) {
         try {
             const { id } = req.params;
             const vitalSigns = req.body;
             
-            // Update consultation with vital signs
             const updateData = { vitalSigns };
             const result = await ConsultationService.updateConsultation(id, updateData);
 
@@ -229,17 +208,11 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * Add diagnosis to consultation
-     * @route POST /api/v1/consultations/:id/diagnosis
-     * @access Doctor only
-     */
     async addDiagnosis(req, res) {
         try {
             const { id } = req.params;
             const diagnosisData = req.body;
             
-            // Update consultation with diagnosis
             const updateData = { 
                 diagnosis: diagnosisData.primaryDiagnosis,
                 secondaryDiagnosis: diagnosisData.secondaryDiagnosis,
@@ -266,11 +239,6 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * Get patient consultation history
-     * @route GET /api/v1/consultations/patient/:patientId/history
-     * @access Doctor only
-     */
     async getPatientHistory(req, res) {
         try {
             const { patientId } = req.params;
@@ -294,11 +262,6 @@ class ConsultationController extends BaseController {
         }
     }
 
-    /**
-     * Delete consultation
-     * @route DELETE /api/v1/consultations/:id
-     * @access Doctor only
-     */
     async deleteConsultation(req, res) {
         try {
             const { id } = req.params;

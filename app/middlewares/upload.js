@@ -1,10 +1,8 @@
 import multer from 'multer';
 import path from 'path';
 
-// Configure multer to use memory storage
 const storage = multer.memoryStorage();
 
-// File filter for allowed file types
 const fileFilter = (req, file, cb) => {
     const allowedMimeTypes = [
         'application/pdf',
@@ -26,7 +24,6 @@ const fileFilter = (req, file, cb) => {
     }
 };
 
-// Configure multer
 const upload = multer({
     storage: storage,
     limits: {

@@ -5,7 +5,6 @@ import { authenticate } from '../../middlewares/auth.js';
 
 const router = express.Router();
 
-// Instantiate the service and controller
 const authService = new AuthService();
 const authController = new AuthController(authService);
 

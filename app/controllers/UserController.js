@@ -13,10 +13,8 @@ class UserController extends BaseController {
         const validatedData = UserValidator.validateCreateUser(req.body);
         const requestingUser = req.user;
 
-        // Create user with permission check
         const user = await this.userService.createUser(validatedData, requestingUser);
 
-        // Send response
         return this.handleSuccess(res, {
             message: 'User created successfully',
             data: user
@@ -97,9 +95,6 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Get current authenticated user's profile
-     */
     async getCurrentUser(req, res) {
         const userId = req.user.userId; // From JWT token
 
@@ -111,14 +106,9 @@ class UserController extends BaseController {
         });
     }
 
-    /**
-     * Update current authenticated user's profile
-     * Users can only update their own limited fields (fname, lname, phone)
-     */
     async updateCurrentUser(req, res) {
         const userId = req.user.userId; // From JWT token
         
-        // Only allow certain fields to be updated by user themselves
         const allowedFields = ['fname', 'lname', 'phone'];
         const updateData = {};
         

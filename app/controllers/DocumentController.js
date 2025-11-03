@@ -4,10 +4,6 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 import Logger from '../logs/Logger.js';
 
 class DocumentController extends BaseController {
-    /**
-     * Upload document
-     * @route POST /api/v1/documents
-     */
     async uploadDocument(req, res) {
         try {
             if (!req.file) {
@@ -54,10 +50,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * List patient documents
-     * @route GET /api/v1/documents/patient/:patientId
-     */
     async listPatientDocuments(req, res) {
         try {
             const { patientId } = req.params;
@@ -89,10 +81,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Get document details
-     * @route GET /api/v1/documents/:id
-     */
     async getDocumentById(req, res) {
         try {
             const { id } = req.params;
@@ -116,10 +104,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Download document
-     * @route GET /api/v1/documents/:id/download
-     */
     async downloadDocument(req, res) {
         try {
             const { id } = req.params;
@@ -133,12 +117,10 @@ class DocumentController extends BaseController {
                 });
             }
             
-            // Set response headers
             res.setHeader('Content-Type', result.data.mimeType);
             res.setHeader('Content-Disposition', `attachment; filename="${result.data.fileName}"`);
             res.setHeader('Content-Length', result.data.fileSize);
             
-            // Pipe the stream to response
             result.data.stream.pipe(res);
         } catch (error) {
             Logger.error('Error in downloadDocument controller', error);
@@ -146,10 +128,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Update document
-     * @route PUT /api/v1/documents/:id
-     */
     async updateDocument(req, res) {
         try {
             const { id } = req.params;
@@ -174,10 +152,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Delete document
-     * @route DELETE /api/v1/documents/:id
-     */
     async deleteDocument(req, res) {
         try {
             const { id } = req.params;
@@ -201,10 +175,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Get consultation documents
-     * @route GET /api/v1/documents/consultation/:consultationId
-     */
     async getConsultationDocuments(req, res) {
         try {
             const { consultationId } = req.params;
@@ -228,10 +198,6 @@ class DocumentController extends BaseController {
         }
     }
     
-    /**
-     * Get lab order documents
-     * @route GET /api/v1/documents/lab-order/:labOrderId
-     */
     async getLabOrderDocuments(req, res) {
         try {
             const { labOrderId } = req.params;

@@ -2,10 +2,6 @@ import { ROLE_PERMISSIONS } from '../constants/roles.js';
 import { HTTP_STATUS } from '../constants/statusCodes.js';
 import Logger from '../logs/Logger.js';
 
-/**
- * Check if user has required permission
- * @param {string} requiredPermission - The permission to check
- */
 export const checkPermission = (requiredPermission) => {
     return (req, res, next) => {
         try {
@@ -39,9 +35,6 @@ export const checkPermission = (requiredPermission) => {
     };
 };
 
-/**
- * Check if user has admin role
- */
 export const requireAdmin = (req, res, next) => {
     try {
         const userRole = req.user?.role;
@@ -71,10 +64,6 @@ export const requireAdmin = (req, res, next) => {
     }
 };
 
-/**
- * Check if user has one of the required roles
- * @param {string[]} allowedRoles - Array of allowed roles
- */
 export const requireRole = (allowedRoles) => {
     return (req, res, next) => {
         try {

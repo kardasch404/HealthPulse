@@ -1,17 +1,12 @@
 import Logger from '../logs/Logger.js';
 import { HTTP_STATUS } from '../constants/statusCodes.js';
 
-/**
- * Global Error Handler Middleware
- * Handles all errors thrown in the application
- */
 export const errorHandler = (error, req, res, next) => {
   
     let statusCode = error.statusCode || HTTP_STATUS.INTERNAL_SERVER_ERROR;
     let message = error.message || 'Internal Server Error';
     let errors = error.errors;
 
-    // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
         statusCode = HTTP_STATUS.BAD_REQUEST;
         message = 'Validation Error';
@@ -21,20 +16,17 @@ export const errorHandler = (error, req, res, next) => {
         }));
     }
 
-    // Handle Mongoose duplicate key errors
     if (error.code === 11000) {
         statusCode = HTTP_STATUS.CONFLICT;
         const field = Object.keys(error.keyPattern)[0];
         message = `${field} already exists`;
     }
 
-    // Handle Mongoose cast errors
     if (error.name === 'CastError') {
         statusCode = HTTP_STATUS.BAD_REQUEST;
         message = `Invalid ${error.path}: ${error.value}`;
     }
 
-    // Handle JWT errors
     if (error.name === 'JsonWebTokenError') {
         statusCode = HTTP_STATUS.UNAUTHORIZED;
         message = 'Invalid token';
@@ -45,7 +37,6 @@ export const errorHandler = (error, req, res, next) => {
         message = 'Token has expired';
     }
 
-    // Log the error
     Logger.error('Request error', {
         statusCode,
         message,
@@ -54,7 +45,6 @@ export const errorHandler = (error, req, res, next) => {
         ...(process.env.NODE_ENV === 'development' && { stack: error.stack })
     });
 
-    // Send error response
     const response = {
         success: false,
         message,

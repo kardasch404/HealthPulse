@@ -4,12 +4,10 @@ import User from '../models/User.js';
 import Logger from '../logs/Logger.js';
 
 class ConsultationService {
-    // CREATE - Create new consultation
     static async createConsultation(data) {
         try {
             const { appointmentId, patientId, doctorId, chiefComplaint, symptoms, createdBy } = data;
 
-            // Verify appointment exists and belongs to this patient/doctor
             if (appointmentId) {
                 const appointment = await Termin.findById(appointmentId);
                 if (!appointment) {
@@ -40,7 +38,6 @@ class ConsultationService {
         }
     }
 
-    // READ - Get consultation by ID
     static async getConsultationById(consultationId) {
         try {
             const consultation = await Consultation.findById(consultationId)
@@ -61,7 +58,6 @@ class ConsultationService {
         }
     }
 
-    // READ - Get all consultations with filters
     static async getAllConsultations(filters = {}, page = 1, limit = 10) {
         try {
             const { patientId, doctorId, status, dateFrom, dateTo } = filters;
@@ -100,7 +96,6 @@ class ConsultationService {
         }
     }
 
-    // READ - Get doctor's consultations
     static async getDoctorConsultations(doctorId, includeCompleted = true) {
         try {
             const query = { doctorId };
@@ -121,7 +116,6 @@ class ConsultationService {
         }
     }
 
-    // READ - Get patient consultation history
     static async getPatientHistory(patientId, doctorId = null) {
         try {
             const query = { patientId, status: 'completed' };
@@ -140,7 +134,6 @@ class ConsultationService {
         }
     }
 
-    // UPDATE - Update consultation
     static async updateConsultation(consultationId, updates) {
         try {
             const consultation = await Consultation.findById(consultationId);
@@ -163,7 +156,6 @@ class ConsultationService {
         }
     }
 
-    // UPDATE - Complete consultation
     static async completeConsultation(consultationId) {
         try {
             const consultation = await Consultation.findById(consultationId);
@@ -174,7 +166,6 @@ class ConsultationService {
             consultation.status = 'completed';
             await consultation.save();
 
-            // Update related appointment if exists
             if (consultation.appointmentId) {
                 await Termin.findByIdAndUpdate(consultation.appointmentId, { status: 'completed' });
             }
@@ -187,7 +178,6 @@ class ConsultationService {
         }
     }
 
-    // DELETE - Delete consultation (soft delete)
     static async deleteConsultation(consultationId) {
         try {
             const consultation = await Consultation.findById(consultationId);

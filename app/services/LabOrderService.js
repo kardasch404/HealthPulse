@@ -5,9 +5,6 @@ import User from '../models/User.js';
 import Logger from '../logs/Logger.js';
 
 class LabOrderService {
-    // ========================================
-    // CREATE
-    // ========================================
     static async createLabOrder(data) {
         try {
             const {
@@ -25,13 +22,11 @@ class LabOrderService {
                 specialInstructions
             } = data;
 
-            // Validate consultation exists
             const consultation = await Consultation.findById(consultationId);
             if (!consultation) {
                 return { success: false, message: 'Consultation not found' };
             }
 
-            // Validate laboratory exists and is active
             const laboratory = await Laboratory.findById(laboratoryId);
             if (!laboratory) {
                 return { success: false, message: 'Laboratory not found' };
@@ -40,7 +35,6 @@ class LabOrderService {
                 return { success: false, message: 'Laboratory is not active' };
             }
 
-            // Create lab order
             const labOrder = new LabOrder({
                 consultationId,
                 patientId,
@@ -60,7 +54,6 @@ class LabOrderService {
                 specialInstructions
             });
 
-            // Calculate estimated completion
             if (tests && tests.length > 0) {
                 const maxTurnaround = Math.max(...tests.map(t => t.expectedTurnaround || 24));
                 labOrder.estimatedCompletionDate = new Date(Date.now() + maxTurnaround * 60 * 60 * 1000);
@@ -80,9 +73,6 @@ class LabOrderService {
         }
     }
 
-    // ========================================
-    // READ
-    // ========================================
     static async getLabOrderById(labOrderId, populateDetails = true) {
         try {
             let query = LabOrder.findById(labOrderId);
@@ -224,9 +214,6 @@ class LabOrderService {
         }
     }
 
-    // ========================================
-    // UPDATE
-    // ========================================
     static async addTestToOrder(labOrderId, testData) {
         try {
             const labOrder = await LabOrder.findById(labOrderId);
@@ -265,7 +252,6 @@ class LabOrderService {
             labOrder.status = status;
             labOrder.addStatusHistory(status, userId, reason);
 
-            // Update timestamps based on status
             if (status === 'sample_collected') {
                 labOrder.sampleCollectedAt = new Date();
                 labOrder.sampleCollectedBy = userId;
@@ -364,9 +350,6 @@ class LabOrderService {
         }
     }
 
-    // ========================================
-    // DELETE / CANCEL
-    // ========================================
     static async cancelLabOrder(labOrderId, reason, userId) {
         try {
             const labOrder = await LabOrder.findById(labOrderId);
@@ -396,9 +379,6 @@ class LabOrderService {
         }
     }
 
-    // ========================================
-    // RESULTS & REPORTS
-    // ========================================
     static async getLabResults(labOrderId) {
         try {
             const labOrder = await LabOrder.findById(labOrderId)
@@ -441,9 +421,6 @@ class LabOrderService {
         }
     }
 
-    // ========================================
-    // STATISTICS
-    // ========================================
     static async getLabOrderStatistics(filters = {}) {
         try {
             const { doctorId, laboratoryId, startDate, endDate } = filters;

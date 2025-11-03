@@ -3,11 +3,6 @@ import PharmacyService from '../services/PharmacyService.js';
 import { HTTP_STATUS } from '../constants/statusCodes.js';
 
 class PharmacyController extends BaseController {
-    /**
-     * Register a new pharmacy
-     * @route POST /api/v1/pharmacies
-     * @access Admin only
-     */
     async registerPharmacy(req, res) {
         try {
             const result = await PharmacyService.registerPharmacy(req.body);
@@ -29,9 +24,8 @@ class PharmacyController extends BaseController {
     }
 
     /**
-     * Get all pharmacies with filters and pagination
      * @route GET /api/v1/pharmacies
-     * @access Admin, Pharmacist, Doctor
+     * @access Public
      */
     async getAllPharmacies(req, res) {
         try {
@@ -66,9 +60,8 @@ class PharmacyController extends BaseController {
     }
 
     /**
-     * Get pharmacy by ID
      * @route GET /api/v1/pharmacies/:id
-     * @access Admin, Pharmacist, Doctor
+     * @access Public
      */
     async getPharmacyById(req, res) {
         try {
@@ -93,9 +86,8 @@ class PharmacyController extends BaseController {
     }
 
     /**
-     * Update pharmacy
      * @route PUT /api/v1/pharmacies/:id
-     * @access Admin only
+     * @access Admin
      */
     async updatePharmacy(req, res) {
         try {
@@ -119,11 +111,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Delete pharmacy
-     * @route DELETE /api/v1/pharmacies/:id
-     * @access Admin only
-     */
     async deletePharmacy(req, res) {
         try {
             const { id } = req.params;
@@ -145,11 +132,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Activate pharmacy
-     * @route PATCH /api/v1/pharmacies/:id/activate
-     * @access Admin only
-     */
     async activatePharmacy(req, res) {
         try {
             const { id } = req.params;
@@ -172,11 +154,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Suspend pharmacy
-     * @route PATCH /api/v1/pharmacies/:id/suspend
-     * @access Admin only
-     */
     async suspendPharmacy(req, res) {
         try {
             const { id } = req.params;
@@ -207,11 +184,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Search pharmacies
-     * @route GET /api/v1/pharmacies/search
-     * @access Public (authenticated)
-     */
     async searchPharmacies(req, res) {
         try {
             const { q } = req.query;
@@ -241,11 +213,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Get pharmacy statistics
-     * @route GET /api/v1/pharmacies/stats
-     * @access Admin only
-     */
     async getPharmacyStats(req, res) {
         try {
             const result = await PharmacyService.getPharmacyStats();
@@ -266,11 +233,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Get nearby pharmacies
-     * @route GET /api/v1/pharmacies/nearby
-     * @access All authenticated users
-     */
     async getNearbyPharmacies(req, res) {
         try {
             const { latitude, longitude, radius = 10 } = req.query;
@@ -304,11 +266,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Search pharmacies by services
-     * @route GET /api/v1/pharmacies/search/services
-     * @access All authenticated users
-     */
     async searchByServices(req, res) {
         try {
             const { services, city } = req.query;
@@ -339,11 +296,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Verify pharmacy
-     * @route PATCH /api/v1/pharmacies/:id/verify
-     * @access Admin only
-     */
     async verifyPharmacy(req, res) {
         try {
             const { id } = req.params;
@@ -366,11 +318,6 @@ class PharmacyController extends BaseController {
         }
     }
 
-    /**
-     * Add pharmacist to pharmacy
-     * @route POST /api/v1/pharmacies/:id/pharmacists
-     * @access Admin only
-     */
     async addPharmacist(req, res) {
         try {
             const { id } = req.params;

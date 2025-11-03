@@ -4,7 +4,6 @@ import Logger from '../logs/Logger.js';
 class LaboratoryService {
     static async registerLaboratory(data) {
         try {
-            // The model now supports flat fields directly, no transformation needed
             const laboratory = new Laboratory(data);
             await laboratory.save();
             Logger.info('Laboratory registered', { laboratoryId: laboratory._id });
@@ -90,7 +89,6 @@ class LaboratoryService {
                 suspendedAt: new Date()
             };
 
-            // Add optional suspension details
             if (options.duration || options.notifyStaff !== undefined || options.allowEmergency !== undefined) {
                 updateData.suspensionDetails = {
                     duration: options.duration,

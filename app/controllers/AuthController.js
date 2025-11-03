@@ -9,12 +9,8 @@ import Logger from '../logs/Logger.js';
 
 class AuthController extends BaseController 
 {
-    /** @type {AuthService} */
     #authService;
 
-    /**
-     * @param {AuthService} authService
-     */
     constructor (authService)
     {
         super();

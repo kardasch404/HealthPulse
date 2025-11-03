@@ -8,6 +8,10 @@ class RoleController extends BaseController {
         this.roleService = roleService;
     }
 
+    /**
+     * @route GET /api/v1/roles
+     * @access Admin
+     */
     async getAllRoles(req, res) {
         try {
             
@@ -32,6 +36,10 @@ class RoleController extends BaseController {
         }
     }
 
+    /**
+     * @route GET /api/v1/roles/:id
+     * @access Admin
+     */
     async getRoleById(req, res) {
         try {
             if (req.user?.role !== ROLES.ADMIN) {
