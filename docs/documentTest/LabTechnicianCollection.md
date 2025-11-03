@@ -37,30 +37,29 @@ if (pm.response.code === 200) {
 
 ## 📁 8. Lab Technician Operations ✨ NEW
 
-### 📂 Authentication
+### 📂 My Laboratory
 
-#### **Lab Technician Login**
-```http
-POST {{base_url}}/api/v1/auth/login
-Content-Type: application/json
-```
+---
 
-**Request Body:**
-```json
-{
-  "email": "labtech@healthpulse.com",
-  "password": "LabTech@123"
-}
-```
-
-#### **View My Laboratory Info**
+#### **1️⃣ View My Laboratory Information**
 ```http
 GET {{base_url}}/api/v1/laboratories/{{laboratory_id}}
 Authorization: Bearer {{access_token}}
 ```
 
-**Test Script:**
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/laboratories/{{laboratory_id}}`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
 ```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
 pm.test("Laboratory information retrieved", function () {
     const jsonData = pm.response.json();
     pm.expect(jsonData.data).to.have.property('name');
@@ -68,7 +67,753 @@ pm.test("Laboratory information retrieved", function () {
     pm.expect(jsonData.data).to.have.property('accreditation');
     pm.expect(jsonData.data).to.have.property('services');
 });
+
+pm.test("Laboratory has test catalog", function () {
+    const jsonData = pm.response.json();
+    if (jsonData.data.testCatalog) {
+        pm.expect(jsonData.data.testCatalog).to.be.an('array');
+    }
+});
+
+// Display laboratory info
+const lab = pm.response.json().data;
+console.log("Laboratory Name:", lab.name);
+console.log("License:", lab.licenseNumber);
+console.log("Accreditation:", lab.accreditation?.join(", ") || "None");
+console.log("Status:", lab.status);
+console.log("Tests Available:", lab.testCatalog?.length || 0);
 ```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Laboratory retrieved successfully",
+  "data": {
+    "_id": "6907...",
+    "name": "Central Clinical Laboratory",
+    "licenseNumber": "LAB-2024-001",
+    "address": "456 Medical Center",
+    "phone": "555-0200",
+    "email": "lab@centralclinic.com",
+    "accreditation": ["CAP", "CLIA", "ISO 15189"],
+    "services": [
+      "Clinical Chemistry",
+      "Hematology",
+      "Microbiology",
+      "Immunology"
+    ],
+    "testCatalog": [...],
+    "workingHours": {
+      "monday": {"start": "06:00", "end": "22:00"}
+    },
+    "status": "active",
+    "verified": true
+  }
+}
+```
+
+---
+
+### 📂 Sample Management (Advanced)
+
+---
+
+#### **Log Sample Receipt**
+```http
+POST {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/samples/log
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `POST`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/samples/log`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body:**
+```json
+{
+  "sampleType": "Blood",
+  "collectionTime": "2025-11-03T08:30:00.000Z",
+  "receivedTime": "2025-11-03T09:15:00.000Z",
+  "volume": "10 mL",
+  "container": "Purple top EDTA tube",
+  "sampleQuality": "Good",
+  "condition": "No hemolysis, no clotting",
+  "storageLocation": "Refrigerator A, Shelf 3",
+  "notes": "Sample received in good condition, properly labeled"
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200 or 201", function () {
+    pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+});
+
+pm.test("Sample logged successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+});
+
+console.log("✅ Sample logged successfully");
+```
+
+---
+
+#### **Update Sample Status**
+```http
+PATCH {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/samples/{{sample_id}}/status
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `PATCH`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/samples/{{sample_id}}/status`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body (Processing):**
+```json
+{
+  "status": "processing",
+  "notes": "Sample prepared for testing"
+}
+```
+
+**Request Body (Tested):**
+```json
+{
+  "status": "tested",
+  "notes": "All tests completed"
+}
+```
+
+**Request Body (Rejected):**
+```json
+{
+  "status": "rejected",
+  "rejectionReason": "Hemolyzed sample - requires recollection",
+  "notes": "Sample quality compromised"
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Sample status updated", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+});
+
+console.log("✅ Sample status updated");
+```
+
+---
+
+#### **3️⃣ Get Lab Order Details**
+```http
+GET {{base_url}}/api/v1/lab-orders/{{lab_order_id}}
+Authorization: Bearer {{access_token}}
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Lab order details retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('orderNumber');
+    pm.expect(jsonData.data).to.have.property('tests');
+    pm.expect(jsonData.data).to.have.property('status');
+    pm.expect(jsonData.data).to.have.property('clinicalIndication');
+});
+
+pm.test("Tests array exists", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data.tests).to.be.an('array');
+    pm.expect(jsonData.data.tests.length).to.be.at.least(1);
+});
+
+pm.test("Laboratory info included", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('laboratoryId');
+});
+
+// Display order details
+const order = pm.response.json().data;
+console.log("\n🧪 Lab Order Details");
+console.log("====================");
+console.log("Order Number:", order.orderNumber);
+console.log("Status:", order.status);
+console.log("Urgency:", order.urgency);
+console.log("Patient:", order.patientId?.fname, order.patientId?.lname);
+console.log("Doctor:", order.doctorId?.fname, order.doctorId?.lname);
+console.log("Clinical Indication:", order.clinicalIndication);
+console.log("Fasting Required:", order.fastingRequired ? "Yes" : "No");
+
+console.log("\n📊 Tests Ordered:");
+order.tests?.forEach((test, i) => {
+    console.log(`${i+1}. ${test.name} (${test.code})`);
+    console.log(`   Category: ${test.category}`);
+    console.log(`   Status: ${test.status}`);
+    console.log(`   Urgency: ${test.urgency}`);
+    if (test.instructions) {
+        console.log(`   Instructions: ${test.instructions}`);
+    }
+});
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Lab order retrieved successfully",
+  "data": {
+    "_id": "6907...",
+    "orderNumber": "LAB-2025-123456",
+    "consultationId": {
+      "_id": "6907...",
+      "chiefComplaint": "Fatigue"
+    },
+    "patientId": {
+      "_id": "6907...",
+      "fname": "John",
+      "lname": "Doe",
+      "dateOfBirth": "1990-01-15"
+    },
+    "doctorId": {
+      "_id": "6907...",
+      "fname": "Dr. Smith",
+      "specialization": "Internal Medicine"
+    },
+    "laboratoryId": {
+      "_id": "6907...",
+      "name": "Central Lab"
+    },
+    "tests": [
+      {
+        "_id": "6907...",
+        "name": "Complete Blood Count",
+        "code": "CBC",
+        "category": "Hematology",
+        "status": "pending",
+        "urgency": "routine",
+        "instructions": "Fasting not required"
+      }
+    ],
+    "status": "pending",
+    "urgency": "routine",
+    "clinicalIndication": "Check for anemia",
+    "fastingRequired": false,
+    "createdAt": "2025-11-03T..."
+  }
+}
+```
+
+---
+
+#### **4️⃣ Update Lab Order Status**
+```http
+PATCH {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/status
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `PATCH`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/status`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body (Mark as Sample Collected):**
+```json
+{
+  "status": "sample_collected",
+  "reason": "Sample received and logged"
+}
+```
+
+**Request Body (Mark as In Progress):**
+```json
+{
+  "status": "in_progress",
+  "reason": "Testing procedures initiated"
+}
+```
+
+**Request Body (Mark as Completed):**
+```json
+{
+  "status": "completed",
+  "reason": "All tests completed and validated"
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Status updated successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+    pm.expect(jsonData.data).to.have.property('status');
+});
+
+console.log("✅ Order status updated to:", pm.response.json().data.status);
+```
+
+---
+
+#### **5️⃣ Update Test Status**
+```http
+PATCH {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/status
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `PATCH`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/status`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body:**
+```json
+{
+  "status": "completed",
+  "results": {
+    "WBC": "7.5 x10^9/L",
+    "RBC": "5.2 x10^12/L",
+    "Hemoglobin": "15.0 g/dL",
+    "Hematocrit": "45.0%",
+    "Platelets": "250 x10^9/L"
+  },
+  "interpretation": "All values within normal range",
+  "resultNotes": "No abnormalities detected"
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Test status updated", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+});
+
+console.log("✅ Test status updated successfully");
+```
+
+---
+
+#### **6️⃣ Add Test Results**
+```http
+POST {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/results
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `POST`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/results`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body:**
+```json
+{
+  "results": {
+    "WBC": "7.5 x10^9/L",
+    "RBC": "5.2 x10^12/L",
+    "Hemoglobin": "15.0 g/dL",
+    "Hematocrit": "45.0%",
+    "Platelets": "250 x10^9/L",
+    "MCV": "88.0 fL",
+    "MCH": "29.0 pg",
+    "MCHC": "33.0 g/dL"
+  },
+  "interpretation": "Complete Blood Count shows all values within normal reference ranges. No evidence of anemia, infection, or bleeding disorders.",
+  "notes": "Quality control passed. Results validated.",
+  "criticalValues": []
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200 or 201", function () {
+    pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+});
+
+pm.test("Results added successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+    pm.expect(jsonData.message).to.include("result");
+});
+
+console.log("✅ Test results added successfully");
+```
+
+---
+
+#### **7️⃣ Get Lab Results**
+```http
+GET {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/results
+Authorization: Bearer {{access_token}}
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/results`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Lab results retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('orderNumber');
+    pm.expect(jsonData.data).to.have.property('completedTests');
+});
+
+// Display results
+const data = pm.response.json().data;
+console.log("\n📊 Lab Results");
+console.log("==============");
+console.log("Order Number:", data.orderNumber);
+console.log("Status:", data.status);
+console.log("Completed Tests:", data.completedTests?.length || 0);
+console.log("Pending Tests:", data.pendingTests?.length || 0);
+
+if (data.completedTests) {
+    console.log("\n✅ Completed Tests:");
+    data.completedTests.forEach((test, i) => {
+        console.log(`${i+1}. ${test.name} (${test.code})`);
+        console.log(`   Status: ${test.status}`);
+        if (test.results) {
+            console.log("   Results:", JSON.stringify(test.results, null, 2));
+        }
+        if (test.interpretation) {
+            console.log(`   Interpretation: ${test.interpretation}`);
+        }
+    });
+}
+```
+
+---
+
+#### **8️⃣ Get Order Statistics**
+```http
+GET {{base_url}}/api/v1/lab-orders/statistics/overview
+Authorization: Bearer {{access_token}}
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/lab-orders/statistics/overview`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Statistics retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.be.an('object');
+});
+
+// Display stats
+const stats = pm.response.json().data;
+console.log("\n📈 Lab Order Statistics");
+console.log("======================");
+console.log("Total Orders:", stats.totalOrders || 0);
+console.log("Pending:", stats.pendingOrders || 0);
+console.log("In Progress:", stats.inProgressOrders || 0);
+console.log("Completed:", stats.completedOrders || 0);
+```
+
+---
+
+### 📂 My Profile
+
+---
+
+#### **9️⃣ View My Profile**
+```http
+GET {{base_url}}/api/v1/users/me
+Authorization: Bearer {{access_token}}
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/users/me`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Lab technician profile retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('email');
+    pm.expect(jsonData.data).to.have.property('fname');
+    pm.expect(jsonData.data).to.have.property('lname');
+    pm.expect(jsonData.data.role).to.equal('lab_technician');
+});
+
+const user = pm.response.json().data;
+console.log("Name:", user.fname, user.lname);
+console.log("Email:", user.email);
+console.log("Role:", user.role);
+```
+
+---
+
+#### **🔟 Update My Profile**
+```http
+PUT {{base_url}}/api/v1/users/me
+Authorization: Bearer {{access_token}}
+Content-Type: application/json
+```
+
+**✅ Ready to Test in Postman:**
+1. Method: `PUT`
+2. URL: `{{base_url}}/api/v1/users/me`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
+
+**Request Body:**
+```json
+{
+  "phone": "1234567899",
+  "licenseNumber": "LAB-2024-002",
+  "specialization": "Clinical Chemistry and Hematology",
+  "certifications": ["MLT", "ASCP"],
+  "experience": 6,
+  "shift": "Day Shift"
+}
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Profile updated successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+});
+
+console.log("✅ Profile updated successfully");
+```
+
+---
+
+### 🎯 **Quick Test Checklist for Lab Technician Operations**
+
+**Prerequisites:**
+- ✅ Login as lab technician and save `access_token`, `lab_technician_id`, and `laboratory_id`
+- ✅ Have lab orders assigned to your laboratory
+
+**Test Sequence:**
+
+1. **GET My Laboratory Info** ✅
+   - URL: `{{base_url}}/api/v1/laboratories/{{laboratory_id}}`
+   - Should show laboratory details
+
+2. **GET All Lab Orders** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders`
+   - Should return orders for your lab
+   - Save `lab_order_id` from response
+
+3. **GET Lab Order Details** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}`
+   - Should show full test list
+
+4. **PATCH Update Order Status** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/status`
+   - Change status to `sample_collected` → `in_progress` → `completed`
+
+5. **PATCH Update Test Status** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/status`
+   - Update individual test status
+
+6. **POST Add Test Results** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/results`
+   - Add test results with interpretation
+
+7. **GET Lab Results** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/results`
+   - View all completed results
+
+8. **GET Statistics** ✅
+   - URL: `{{base_url}}/api/v1/lab-orders/statistics/overview`
+   - View order statistics
+
+9. **GET My Profile** ✅
+   - URL: `{{base_url}}/api/v1/users/me`
+   - View your profile
+
+10. **PUT Update Profile** ✅
+    - URL: `{{base_url}}/api/v1/users/me`
+    - Update profile information
+
+---
+
+### 🔍 **Common Issues & Solutions**
+
+**Issue 1: "Lab technician not authorized"**
+- **Solution**: Make sure you're logged in with lab technician credentials
+- **Solution**: Check that `access_token` is valid
+
+**Issue 2: "Laboratory not found"**
+- **Solution**: Verify `laboratory_id` is set in environment
+- **Solution**: Check lab technician is associated with a laboratory
+
+**Issue 3: "Cannot update order status"**
+- **Solution**: Check current status allows the transition
+- **Solution**: Ensure you have PROCESS_LAB_ORDERS permission
+
+**Issue 4: "Test not found"**
+- **Solution**: Get `test_id` from lab order details first
+- **Solution**: Verify test belongs to the order
+
+**Issue 5: Empty lab orders list**
+- **Solution**: Ask a doctor to create lab orders for your laboratory
+- **Solution**: Check status filters
+
+---
+
+### 📊 **Sample Test Flow in Postman**
+
+```javascript
+// 1. Login as Lab Technician (POST /api/v1/auth/login)
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    pm.environment.set("access_token", response.data.tokens.accessToken);
+    pm.environment.set("lab_technician_id", response.data.user.id);
+    console.log("✅ Lab Technician logged in");
+}
+
+// 2. Get All Lab Orders (GET /api/v1/lab-orders)
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    if (response.data.labOrders && response.data.labOrders.length > 0) {
+        const order = response.data.labOrders[0];
+        pm.environment.set("lab_order_id", order._id);
+        
+        // Save first test ID for test status updates
+        if (order.tests && order.tests.length > 0) {
+            pm.environment.set("test_id", order.tests[0]._id);
+        }
+        
+        console.log("✅ Lab Order ID saved:", order._id);
+        console.log("   Status:", order.status);
+        console.log("   Tests:", order.tests.length);
+    }
+}
+
+// 3. Update Order Status (PATCH /api/v1/lab-orders/{{lab_order_id}}/status)
+console.log("✅ Order status updated");
+
+// 4. Add Test Results (POST /api/v1/lab-orders/{{lab_order_id}}/tests/{{test_id}}/results)
+console.log("✅ Test results added");
+
+// 5. Get Results (GET /api/v1/lab-orders/{{lab_order_id}}/results)
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    console.log("✅ Results:", response.data.completedTests?.length || 0, "tests completed");
+}
+```
+
+---
+
+### 🧪 **Lab Order Status Flow for Technicians**
+
+| Status | Description | Technician Action |
+|--------|-------------|-------------------|
+| `pending` | Order received | ✅ Update to `sample_collected` |
+| `sample_collected` | Sample logged in lab | ✅ Update to `in_progress` |
+| `in_progress` | Tests being processed | ✅ Add results, update to `completed` |
+| `partial_results` | Some tests done | ✅ Complete remaining tests |
+| `completed` | All tests done | ✅ View/verify results |
+| `cancelled` | Order cancelled | ❌ No action needed |
+| `rejected` | Sample rejected | ✅ Document reason |
+
+---
+
+### 📝 **Lab Technician Responsibilities**
+
+1. **Sample Management**
+   - Receive and log samples
+   - Verify sample quality
+   - Track sample storage
+
+2. **Test Processing**
+   - Run ordered tests
+   - Follow protocols
+   - Use proper equipment
+
+3. **Quality Control**
+   - Run QC checks
+   - Calibrate instruments
+   - Document results
+
+4. **Result Recording**
+   - Enter test results
+   - Add interpretations
+   - Flag critical values
+
+5. **Safety & Compliance**
+   - Follow safety protocols
+   - Maintain documentation
+   - Report incidents
 
 ---
 
@@ -479,7 +1224,9 @@ Content-Type: application/json
 
 ---
 
-### 📂 Critical Values Management (Lab Technician-specific)
+### 📂 Critical Values Management (Advanced)
+
+---
 
 #### **Report Critical Value**
 ```http
@@ -487,6 +1234,14 @@ POST {{base_url}}/api/v1/lab-orders/{{lab_order_id}}/critical-value
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 ```
+
+**✅ Ready to Test in Postman:**
+1. Method: `POST`
+2. URL: `{{base_url}}/api/v1/lab-orders/{{lab_order_id}}/critical-value`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
 
 **Request Body:**
 ```json
@@ -503,65 +1258,144 @@ Content-Type: application/json
     {
       "role": "ordering_physician",
       "name": "Dr. Johnson",
-      "contactMethod": "phone",
-      "notifiedAt": "2024-11-18T11:30:00Z",
-      "response": "acknowledged"
+      "notifiedAt": "2025-11-03T11:30:00.000Z",
+      "method": "phone",
+      "readBack": true
     }
   ],
+  "verificationSteps": [
+    "Result verified by repeat testing",
+    "Instrument QC checked and passed",
+    "Sample integrity confirmed"
+  ],
   "urgency": "immediate",
-  "followUpRequired": true,
-  "notes": "Critical low glucose value. Doctor notified immediately."
+  "notes": "Patient is diabetic, immediate action required"
 }
+```
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200 or 201", function () {
+    pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+});
+
+pm.test("Critical value reported", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+});
+
+console.log("✅ Critical value reported successfully");
+console.log("⚠️ URGENT: Physician notification required");
 ```
 
 ---
 
-### 📂 My Profile
+### 📊 **Complete Lab Technician Workflow Example**
 
-#### **View My Profile**
-```http
-GET {{base_url}}/api/v1/users/{{lab_technician_id}}
-Authorization: Bearer {{access_token}}
+```
+1. LOGIN
+   └─> Save access_token, lab_technician_id, laboratory_id
+
+2. VIEW LAB ORDERS (GET /api/v1/lab-orders)
+   └─> Find pending orders
+   └─> Save lab_order_id
+
+3. GET ORDER DETAILS (GET /api/v1/lab-orders/{{lab_order_id}})
+   └─> Review tests requested
+   └─> Save test_id
+
+4. LOG SAMPLE RECEIPT (POST .../samples/log)
+   └─> Document sample arrival
+   
+5. UPDATE ORDER STATUS → sample_collected
+   
+6. RUN QUALITY CONTROL (POST .../quality-control/record)
+   └─> Verify instruments are calibrated
+   
+7. UPDATE ORDER STATUS → in_progress
+   
+8. PERFORM TESTS
+   
+9. ADD TEST RESULTS (POST .../tests/{{test_id}}/results)
+   └─> Enter values, interpretations
+   
+10. CHECK FOR CRITICAL VALUES
+    └─> If critical, report immediately
+    
+11. UPDATE TEST STATUS → completed
+    
+12. UPDATE ORDER STATUS → completed
+    
+13. VIEW FINAL RESULTS (GET .../results)
+    └─> Verify all tests completed
 ```
 
-#### **Update My Profile**
-```http
-PUT {{base_url}}/api/v1/users/{{lab_technician_id}}
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
+---
 
-**Request Body:**
-```json
-{
-  "phone": "1234567899",
-  "licenseNumber": "LAB-2024-002",
-  "laboratoryId": "{{laboratory_id}}",
-  "specialization": "Clinical Chemistry and Hematology",
-  "certifications": ["MLT", "ASCP", "AMT"],
-  "experience": 6,
-  "workingHours": {
-    "monday": {"start": "07:00", "end": "15:00"},
-    "tuesday": {"start": "07:00", "end": "15:00"},
-    "wednesday": {"start": "07:00", "end": "15:00"},
-    "thursday": {"start": "07:00", "end": "15:00"},
-    "friday": {"start": "07:00", "end": "15:00"}
-  },
-  "shift": "Day Shift",
-  "department": "Clinical Laboratory",
-  "authorizedTests": [
-    "Hematology",
-    "Clinical Chemistry",
-    "Urinalysis",
-    "Coagulation"
-  ],
-  "languagesSpoken": ["English", "French"]
-}
-```
+### 🎓 **Lab Technician Best Practices**
 
-#### **Change Password**
-```http
-PUT {{base_url}}/api/v1/users/{{lab_technician_id}}/password
+**Sample Management:**
+- ✅ Always verify sample labels match order
+- ✅ Check sample quality before processing
+- ✅ Document storage location and conditions
+- ✅ Reject compromised samples immediately
+
+**Testing Procedures:**
+- ✅ Run QC before patient samples
+- ✅ Follow standard operating procedures
+- ✅ Use calibrated instruments only
+- ✅ Document all quality checks
+
+**Result Reporting:**
+- ✅ Double-check critical values
+- ✅ Verify results against reference ranges
+- ✅ Add appropriate interpretations
+- ✅ Report critical values immediately
+
+**Safety & Compliance:**
+- ✅ Wear appropriate PPE
+- ✅ Follow biohazard protocols
+- ✅ Maintain clean work environment
+- ✅ Document incidents properly
+
+---
+
+### 📋 **Environment Variables Checklist**
+
+Make sure these variables are set in your Postman environment:
+
+| Variable | Description | Example |
+|----------|-------------|---------|
+| `base_url` | API base URL | `http://localhost:3000` |
+| `access_token` | JWT token | Auto-saved after login |
+| `lab_technician_id` | Technician user ID | Auto-saved after login |
+| `laboratory_id` | Laboratory ID | Auto-saved after login |
+| `lab_order_id` | Current lab order | Auto-saved from order list |
+| `test_id` | Specific test ID | Auto-saved from order details |
+| `sample_id` | Sample ID | Auto-saved from sample log |
+
+---
+
+### ✅ **Testing Complete!**
+
+You have successfully tested all Lab Technician operations:
+
+- ✅ **10 Core Operations**: View lab info, manage orders, update statuses, add results
+- ✅ **Sample Management**: Log receipts, track status, document quality
+- ✅ **Quality Control**: Record QC, report issues, log calibrations
+- ✅ **Critical Values**: Report and notify urgent results
+- ✅ **Profile Management**: View and update technician information
+
+**Next Steps:**
+1. Test with real laboratory scenarios
+2. Verify quality control procedures
+3. Practice critical value reporting
+4. Test sample tracking workflow
+5. Review all test interpretations
+
+---
+
+
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 ```

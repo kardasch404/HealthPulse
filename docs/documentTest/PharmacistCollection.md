@@ -37,421 +37,491 @@ if (pm.response.code === 200) {
 
 ## 📁 7. Pharmacist Operations ✨ NEW
 
-### 📂 Authentication
+### 📂 My Pharmacy
 
-#### **Pharmacist Login**
-```http
-POST {{base_url}}/api/v1/auth/login
-Content-Type: application/json
-```
+---
 
-**Request Body:**
-```json
-{
-  "email": "pharmacist@healthpulse.com",
-  "password": "Pharmacist@123"
-}
-```
-
-#### **View My Pharmacy Info**
+#### **1️⃣ View My Pharmacy Information**
 ```http
 GET {{base_url}}/api/v1/pharmacies/{{pharmacy_id}}
 Authorization: Bearer {{access_token}}
 ```
 
-**Test Script:**
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/pharmacies/{{pharmacy_id}}`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
 ```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
 pm.test("Pharmacy information retrieved", function () {
     const jsonData = pm.response.json();
     pm.expect(jsonData.data).to.have.property('name');
     pm.expect(jsonData.data).to.have.property('licenseNumber');
     pm.expect(jsonData.data).to.have.property('workingHours');
+    pm.expect(jsonData.data).to.have.property('address');
 });
+
+pm.test("Pharmacy has services", function () {
+    const jsonData = pm.response.json();
+    if (jsonData.data.services) {
+        pm.expect(jsonData.data.services).to.be.an('array');
+    }
+});
+
+// Display pharmacy info
+const pharmacy = pm.response.json().data;
+console.log("Pharmacy Name:", pharmacy.name);
+console.log("License:", pharmacy.licenseNumber);
+console.log("Status:", pharmacy.status);
+console.log("Services:", pharmacy.services?.join(", ") || "None");
+```
+
+**Expected Response:**
+```json
+{
+  "success": true,
+  "message": "Pharmacy retrieved successfully",
+  "data": {
+    "_id": "6907...",
+    "name": "Central Pharmacy",
+    "licenseNumber": "PHARM-2024-001",
+    "address": "123 Main St, City",
+    "phone": "555-0100",
+    "email": "info@centralpharmacy.com",
+    "workingHours": {
+      "monday": {"start": "08:00", "end": "20:00"},
+      "tuesday": {"start": "08:00", "end": "20:00"}
+    },
+    "services": [
+      "Prescription Dispensing",
+      "Drug Counseling",
+      "Immunizations"
+    ],
+    "status": "active",
+    "verified": true
+  }
+}
 ```
 
 ---
 
 ### 📂 Prescription Management
 
-#### **View Assigned Prescriptions**
+---
+
+#### **2️⃣ View All My Prescriptions**
 ```http
-GET {{base_url}}/api/v1/prescriptions/pharmacy/{{pharmacy_id}}?status=assigned&page=1&limit=10
+GET {{base_url}}/api/v1/prescriptions
 Authorization: Bearer {{access_token}}
 ```
 
-**Query Parameters:**
-- `status` (optional): Filter by status (assigned/signed/in_preparation/dispensed)
-- `page` (optional): Page number
-- `limit` (optional): Items per page
-- `priority` (optional): Filter by priority (urgent/normal/routine)
-- `patientName` (optional): Search by patient name
-- `doctorName` (optional): Filter by prescribing doctor
-- `medicationName` (optional): Search by medication name
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/prescriptions`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
 
-**Test Script:**
+**Optional Query Parameters (add to URL):**
+- `?page=1&limit=10` - Pagination
+- `?status=signed` - Filter by status (signed/dispensed)
+
+**Test Script (Copy to Tests tab):**
 ```javascript
-pm.test("Assigned prescriptions for pharmacy", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.data).to.have.property('prescriptions');
-    jsonData.data.prescriptions.forEach(prescription => {
-        pm.expect(prescription.pharmacyId).to.equal(pm.environment.get("pharmacy_id"));
-    });
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
 });
+
+pm.test("Prescriptions retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.be.an('object');
+    
+    // Save first prescription ID for later tests
+    if (jsonData.data.prescriptions && jsonData.data.prescriptions.length > 0) {
+        pm.environment.set("prescription_id", jsonData.data.prescriptions[0]._id);
+        console.log("✅ Saved prescription_id:", jsonData.data.prescriptions[0]._id);
+    }
+});
+
+// Display results
+const data = pm.response.json().data;
+console.log("Total Prescriptions:", data.prescriptions?.length || 0);
+if (data.prescriptions && data.prescriptions.length > 0) {
+    console.log("\nPrescriptions Summary:");
+    data.prescriptions.forEach((rx, i) => {
+        console.log(`${i+1}. ${rx.orderNumber} - ${rx.status} - Meds: ${rx.medications?.length || 0}`);
+    });
+}
 ```
 
-#### **View Pending Prescriptions**
-```http
-GET {{base_url}}/api/v1/prescriptions/pharmacy/{{pharmacy_id}}?status=signed&page=1&limit=10
-Authorization: Bearer {{access_token}}
-```
+---
 
-**Query Parameters:**
-- Same as above, but typically filtered for signed prescriptions awaiting processing
-
-#### **Get Prescription Details**
+#### **3️⃣ Get Prescription Details**
 ```http
 GET {{base_url}}/api/v1/prescriptions/{{prescription_id}}
 Authorization: Bearer {{access_token}}
 ```
 
-**Test Script:**
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/prescriptions/{{prescription_id}}`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
 ```javascript
-pm.test("Prescription belongs to pharmacy", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.data.pharmacyId).to.equal(pm.environment.get("pharmacy_id"));
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
 });
 
-pm.test("Prescription includes medication details", function () {
+pm.test("Prescription details retrieved", function () {
     const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('orderNumber');
     pm.expect(jsonData.data).to.have.property('medications');
+    pm.expect(jsonData.data).to.have.property('status');
+});
+
+pm.test("Medications array exists", function () {
+    const jsonData = pm.response.json();
     pm.expect(jsonData.data.medications).to.be.an('array');
-    pm.expect(jsonData.data.medications[0]).to.have.property('name');
-    pm.expect(jsonData.data.medications[0]).to.have.property('dosage');
+    pm.expect(jsonData.data.medications.length).to.be.at.least(1);
 });
-```
 
-#### **Update Prescription Status**
-
-##### **Mark as In Preparation**
-```http
-PATCH {{base_url}}/api/v1/prescriptions/{{prescription_id}}/status
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "status": "in_preparation",
-  "pharmacistId": "{{pharmacist_id}}",
-  "notes": "Prescription being prepared. All medications available in stock.",
-  "estimatedCompletionTime": "2024-11-18T16:30:00Z",
-  "medicationChecks": [
-    {
-      "medicationId": "med_001",
-      "checked": true,
-      "stockAvailable": true,
-      "expiryDate": "2025-06-15",
-      "batchNumber": "BATCH123"
-    }
-  ]
-}
-```
-
-##### **Mark as Dispensed**
-```http
-PATCH {{base_url}}/api/v1/prescriptions/{{prescription_id}}/status
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "status": "dispensed",
-  "pharmacistId": "{{pharmacist_id}}",
-  "dispensedAt": "2024-11-18T16:45:00Z",
-  "dispensedTo": "Patient",
-  "identificationVerified": true,
-  "copayCollected": true,
-  "copayAmount": 15.50,
-  "paymentMethod": "insurance_copay",
-  "counselingProvided": true,
-  "counselingNotes": "Patient counseled on medication timing and potential side effects",
-  "dispensedMedications": [
-    {
-      "medicationId": "med_001",
-      "quantityDispensed": 30,
-      "batchNumber": "BATCH123",
-      "expiryDate": "2025-06-15",
-      "instructions": "Take one tablet twice daily with food"
-    }
-  ]
-}
-```
-
-**Test Script:**
-```javascript
-pm.test("Prescription status updated successfully", function () {
+pm.test("Patient and doctor info included", function () {
     const jsonData = pm.response.json();
-    pm.expect(jsonData.success).to.be.true;
-    pm.expect(jsonData.data.status).to.equal("dispensed");
-    pm.expect(jsonData.data.dispensedBy).to.equal(pm.environment.get("pharmacist_id"));
+    pm.expect(jsonData.data).to.have.property('patientId');
+    pm.expect(jsonData.data).to.have.property('doctorId');
+});
+
+// Display prescription details
+const rx = pm.response.json().data;
+console.log("\n📋 Prescription Details");
+console.log("======================");
+console.log("Order Number:", rx.orderNumber);
+console.log("Status:", rx.status);
+console.log("Patient:", rx.patientId?.fname, rx.patientId?.lname);
+console.log("Doctor:", rx.doctorId?.fname, rx.doctorId?.lname);
+console.log("\nMedications:");
+rx.medications?.forEach((med, i) => {
+    console.log(`${i+1}. ${med.medicationName}`);
+    console.log(`   Dosage: ${med.dosage}`);
+    console.log(`   Frequency: ${med.frequency}`);
+    console.log(`   Duration: ${med.duration?.value} ${med.duration?.unit}`);
+    console.log(`   Instructions: ${med.instructions}`);
 });
 ```
 
-#### **Report Medication Unavailable**
-```http
-PATCH {{base_url}}/api/v1/prescriptions/{{prescription_id}}/medication-unavailable
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
+**Expected Response:**
 ```json
 {
-  "unavailableMedications": [
-    {
-      "medicationName": "Lisinopril 10mg",
-      "reason": "out_of_stock",
-      "expectedRestockDate": "2024-11-25",
-      "alternativeSuggested": {
-        "name": "Lisinopril 5mg",
-        "reason": "Lower dose available, patient can take two tablets"
+  "success": true,
+  "message": "Prescription retrieved successfully",
+  "data": {
+    "_id": "6907...",
+    "orderNumber": "RX-2025-123456",
+    "patientId": {
+      "_id": "6907...",
+      "fname": "John",
+      "lname": "Doe",
+      "phone": "555-0123"
+    },
+    "doctorId": {
+      "_id": "6907...",
+      "fname": "Dr. Smith",
+      "specialization": "Cardiology"
+    },
+    "medications": [
+      {
+        "_id": "6907...",
+        "medicationName": "Lisinopril 10mg",
+        "dosage": "10mg",
+        "frequency": "once daily",
+        "duration": {
+          "value": 30,
+          "unit": "days"
+        },
+        "quantity": 30,
+        "instructions": "Take in the morning with food"
       }
-    }
-  ],
-  "pharmacistId": "{{pharmacist_id}}",
-  "notifyDoctor": true,
-  "notifyPatient": true,
-  "notes": "Contacted supplier, expected delivery by end of week"
-}
-```
-
-#### **View Dispensing History**
-```http
-GET {{base_url}}/api/v1/prescriptions/pharmacy/{{pharmacy_id}}?status=dispensed&page=1&limit=20
-Authorization: Bearer {{access_token}}
-```
-
-**Query Parameters:**
-- `fromDate` (optional): Start date for history (YYYY-MM-DD)
-- `toDate` (optional): End date for history (YYYY-MM-DD)
-- `pharmacistId` (optional): Filter by specific pharmacist
-- `patientName` (optional): Search by patient name
-- `medicationName` (optional): Search by medication name
-
----
-
-### 📂 Inventory Management (Pharmacist-specific)
-
-#### **Check Medication Stock**
-```http
-GET {{base_url}}/api/v1/pharmacies/{{pharmacy_id}}/inventory?medication={{medication_name}}
-Authorization: Bearer {{access_token}}
-```
-
-**Query Parameters:**
-- `medication` (optional): Search specific medication
-- `lowStock` (optional): Show only low stock items
-- `expiringSoon` (optional): Show items expiring within specified days
-- `category` (optional): Filter by medication category
-
-#### **Update Medication Stock**
-```http
-PUT {{base_url}}/api/v1/pharmacies/{{pharmacy_id}}/inventory/{{medication_id}}
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "quantity": 150,
-  "batchNumber": "BATCH456",
-  "expiryDate": "2025-08-20",
-  "costPrice": 45.50,
-  "sellingPrice": 67.99,
-  "supplier": "MedSupply Corp",
-  "updatedBy": "{{pharmacist_id}}",
-  "notes": "New stock received from supplier"
-}
-```
-
-#### **Report Low Stock**
-```http
-POST {{base_url}}/api/v1/pharmacies/{{pharmacy_id}}/inventory/low-stock-alert
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "medicationId": "med_001",
-  "currentStock": 5,
-  "minimumRequired": 50,
-  "urgency": "high",
-  "reportedBy": "{{pharmacist_id}}",
-  "supplierContact": "supplier@medsupply.com"
+    ],
+    "status": "signed",
+    "doctorNotes": "Monitor blood pressure weekly",
+    "validUntil": "2026-02-01T...",
+    "createdAt": "2025-11-03T..."
+  }
 }
 ```
 
 ---
 
-### 📂 Patient Counseling (Pharmacist-specific)
-
-#### **Record Patient Counseling**
+#### **4️⃣ View Prescription Status**
 ```http
-POST {{base_url}}/api/v1/prescriptions/{{prescription_id}}/counseling
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "pharmacistId": "{{pharmacist_id}}",
-  "counselingDate": "2024-11-18T16:45:00Z",
-  "counselingType": "medication_education",
-  "topicsCovered": [
-    "Proper dosage timing",
-    "Food interactions",
-    "Side effects to watch for",
-    "Storage instructions"
-  ],
-  "patientQuestions": [
-    "Can I take this with my morning coffee?",
-    "What should I do if I miss a dose?"
-  ],
-  "patientUnderstanding": "good",
-  "followUpRequired": false,
-  "duration": 15,
-  "notes": "Patient demonstrated good understanding of medication regimen"
-}
-```
-
-#### **View Counseling History**
-```http
-GET {{base_url}}/api/v1/pharmacies/{{pharmacy_id}}/counseling-history?pharmacistId={{pharmacist_id}}
+GET {{base_url}}/api/v1/prescriptions/{{prescription_id}}/status
 Authorization: Bearer {{access_token}}
 ```
 
----
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/prescriptions/{{prescription_id}}/status`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
 
-### 📂 Drug Interaction Checks (Pharmacist-specific)
-
-#### **Check Drug Interactions**
-```http
-POST {{base_url}}/api/v1/prescriptions/{{prescription_id}}/interaction-check
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
-
-**Request Body:**
-```json
-{
-  "newMedications": [
-    {
-      "name": "Warfarin 5mg",
-      "dosage": "5mg",
-      "frequency": "once daily"
-    }
-  ],
-  "currentMedications": [
-    {
-      "name": "Aspirin 81mg",
-      "dosage": "81mg",
-      "frequency": "once daily"
-    }
-  ]
-}
-```
-
-**Test Script:**
+**Test Script (Copy to Tests tab):**
 ```javascript
-pm.test("Drug interaction check completed", function () {
-    const jsonData = pm.response.json();
-    pm.expect(jsonData.data).to.have.property('interactions');
-    pm.expect(jsonData.data).to.have.property('severity');
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
 });
-```
 
-#### **Report Drug Interaction**
-```http
-POST {{base_url}}/api/v1/prescriptions/{{prescription_id}}/interaction-report
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
-```
+pm.test("Status information available", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('currentStatus');
+    pm.expect(jsonData.data).to.have.property('prescription');
+});
 
-**Request Body:**
-```json
-{
-  "interactionType": "major",
-  "medicationsInvolved": ["Warfarin", "Aspirin"],
-  "severity": "high",
-  "clinicalEffect": "Increased bleeding risk",
-  "recommendation": "Consider alternative anticoagulant or adjust dosing",
-  "pharmacistId": "{{pharmacist_id}}",
-  "notifyDoctor": true,
-  "notifyPatient": true
-}
+pm.test("Status history exists", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data.prescription.statusHistory).to.be.an('array');
+});
+
+// Display status
+const data = pm.response.json().data;
+console.log("Current Status:", data.currentStatus);
+console.log("Order Number:", data.prescription.orderNumber);
+console.log("\nStatus History:");
+data.prescription.statusHistory?.forEach((h, i) => {
+    console.log(`${i+1}. ${h.status} - ${new Date(h.timestamp).toLocaleString()}`);
+});
 ```
 
 ---
 
 ### 📂 My Profile
 
-#### **View My Profile**
+---
+
+#### **5️⃣ View My Profile**
 ```http
-GET {{base_url}}/api/v1/users/{{pharmacist_id}}
+GET {{base_url}}/api/v1/users/me
 Authorization: Bearer {{access_token}}
 ```
 
-#### **Update My Profile**
+**✅ Ready to Test in Postman:**
+1. Method: `GET`
+2. URL: `{{base_url}}/api/v1/users/me`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+4. Click **Send**
+
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Pharmacist profile retrieved", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data).to.have.property('email');
+    pm.expect(jsonData.data).to.have.property('fname');
+    pm.expect(jsonData.data).to.have.property('lname');
+    pm.expect(jsonData.data.role).to.equal('pharmacist');
+});
+
+// Display profile
+const user = pm.response.json().data;
+console.log("Name:", user.fname, user.lname);
+console.log("Email:", user.email);
+console.log("Role:", user.role);
+console.log("Phone:", user.phone);
+```
+
+---
+
+#### **6️⃣ Update My Profile**
 ```http
-PUT {{base_url}}/api/v1/users/{{pharmacist_id}}
+PUT {{base_url}}/api/v1/users/me
 Authorization: Bearer {{access_token}}
 Content-Type: application/json
 ```
+
+**✅ Ready to Test in Postman:**
+1. Method: `PUT`
+2. URL: `{{base_url}}/api/v1/users/me`
+3. Headers: 
+   - `Authorization: Bearer {{access_token}}`
+   - `Content-Type: application/json`
+4. Body (raw JSON):
 
 **Request Body:**
 ```json
 {
   "phone": "1234567899",
   "licenseNumber": "PHAR-2024-002",
-  "pharmacyId": "{{pharmacy_id}}",
-  "specialization": "Clinical Pharmacy and Drug Therapy",
-  "certifications": ["PharmD", "RPh", "BCPS"],
+  "specialization": "Clinical Pharmacy",
+  "certifications": ["PharmD", "RPh"],
   "experience": 10,
-  "workingHours": {
-    "monday": {"start": "08:00", "end": "18:00"},
-    "tuesday": {"start": "08:00", "end": "18:00"},
-    "wednesday": {"start": "08:00", "end": "18:00"},
-    "thursday": {"start": "08:00", "end": "18:00"},
-    "friday": {"start": "08:00", "end": "18:00"},
-    "saturday": {"start": "09:00", "end": "17:00"}
-  },
-  "languagesSpoken": ["English", "Spanish"],
-  "specialAreas": ["Diabetes Management", "Pain Management", "Immunizations"]
+  "languagesSpoken": ["English", "Spanish"]
 }
 ```
 
-#### **Change Password**
-```http
-PUT {{base_url}}/api/v1/users/{{pharmacist_id}}/password
-Authorization: Bearer {{access_token}}
-Content-Type: application/json
+**Test Script (Copy to Tests tab):**
+```javascript
+pm.test("Status code is 200", function () {
+    pm.response.to.have.status(200);
+});
+
+pm.test("Profile updated successfully", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.success).to.be.true;
+    pm.expect(jsonData.message).to.include("updated");
+});
+
+console.log("✅ Profile updated successfully");
 ```
 
-**Request Body:**
-```json
-{
-  "currentPassword": "Pharmacist@123",
-  "newPassword": "NewPharmacist@456",
-  "confirmPassword": "NewPharmacist@456"
+---
+
+### 🎯 **Quick Test Checklist for Pharmacist Operations**
+
+**Prerequisites:**
+- ✅ Login as pharmacist and save `access_token`, `pharmacist_id`, and `pharmacy_id`
+- ✅ Have prescriptions assigned to your pharmacy
+
+**Test Sequence:**
+
+1. **GET My Pharmacy Info** ✅
+   - URL: `{{base_url}}/api/v1/pharmacies/{{pharmacy_id}}`
+   - Should show pharmacy details
+
+2. **GET All Prescriptions** ✅
+   - URL: `{{base_url}}/api/v1/prescriptions`
+   - Should return prescriptions (context-aware for pharmacists)
+   - Save `prescription_id` from response
+
+3. **GET Prescription Details** ✅
+   - URL: `{{base_url}}/api/v1/prescriptions/{{prescription_id}}`
+   - Should show full medication list
+
+4. **GET Prescription Status** ✅
+   - URL: `{{base_url}}/api/v1/prescriptions/{{prescription_id}}/status`
+   - Should show status history
+
+5. **GET My Profile** ✅
+   - URL: `{{base_url}}/api/v1/users/me`
+   - Should show pharmacist profile
+
+6. **PUT Update Profile** ✅
+   - URL: `{{base_url}}/api/v1/users/me`
+   - Should update profile successfully
+
+---
+
+### 🔍 **Common Issues & Solutions**
+
+**Issue 1: "Pharmacist not authorized"**
+- **Solution**: Make sure you're logged in with pharmacist credentials
+- **Solution**: Check that `access_token` is valid and not expired
+
+**Issue 2: "Pharmacy not found"**
+- **Solution**: Verify `pharmacy_id` is set correctly in environment
+- **Solution**: Make sure pharmacist is associated with a pharmacy
+
+**Issue 3: "Prescription not found"**
+- **Solution**: Check that `prescription_id` exists and is accessible
+- **Solution**: Pharmacists can only access prescriptions assigned to their pharmacy
+
+**Issue 4: Empty prescriptions list**
+- **Solution**: Ask a doctor to create and assign a prescription to your pharmacy
+- **Solution**: Check if prescriptions are filtered by status
+
+**Issue 5: Cannot update prescription status**
+- **Solution**: Some status changes require specific permissions
+- **Solution**: Check current prescription status allows the transition
+
+---
+
+### 📊 **Sample Test Flow in Postman**
+
+```javascript
+// 1. Login as Pharmacist (POST /api/v1/auth/login)
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    pm.environment.set("access_token", response.data.tokens.accessToken);
+    pm.environment.set("pharmacist_id", response.data.user.id);
+    // Note: pharmacy_id should be in user profile
+    console.log("✅ Pharmacist logged in");
+}
+
+// 2. Get My Pharmacy (GET /api/v1/pharmacies/{{pharmacy_id}})
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    console.log("✅ Pharmacy:", response.data.name);
+}
+
+// 3. Get All Prescriptions (GET /api/v1/prescriptions)
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    if (response.data.prescriptions && response.data.prescriptions.length > 0) {
+        pm.environment.set("prescription_id", response.data.prescriptions[0]._id);
+        console.log("✅ Found", response.data.prescriptions.length, "prescriptions");
+    }
+}
+
+// 4. Get Prescription Details (GET /api/v1/prescriptions/{{prescription_id}})
+if (pm.response.code === 200) {
+    const response = pm.response.json();
+    console.log("✅ Prescription:", response.data.orderNumber);
+    console.log("   Medications:", response.data.medications.length);
 }
 ```
+
+---
+
+### 💊 **Prescription Status Flow for Pharmacists**
+
+| Status | Description | Pharmacist Action |
+|--------|-------------|-------------------|
+| `draft` | Being created by doctor | ❌ No action |
+| `signed` | Ready for dispensing | ✅ Can view and prepare |
+| `dispensed` | Medication given to patient | ✅ Completed |
+| `cancelled` | Cancelled by doctor | ❌ No action |
+
+---
+
+### 📝 **Pharmacist Responsibilities**
+
+1. **Prescription Review**
+   - Verify prescription validity
+   - Check medication interactions
+   - Confirm patient allergies
+
+2. **Dispensing**
+   - Prepare medications accurately
+   - Label containers correctly
+   - Document dispensing
+
+3. **Patient Counseling**
+   - Explain medication usage
+   - Discuss side effects
+   - Answer patient questions
+
+4. **Inventory Management**
+   - Monitor stock levels
+   - Track expiry dates
+   - Order supplies
+
+5. **Safety Checks**
+   - Drug interaction screening
+   - Dose verification
+   - Patient identification
 
 ---
 

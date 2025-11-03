@@ -595,10 +595,57 @@ Content-Type: application/json
 
 **Test Script:**
 ```javascript
-if (pm.response.code === 201) {
-    const response = pm.response.json();
-    pm.environment.set("laboratory_id", response.data.id);
-}
+// Enhanced laboratory registration test
+pm.test("Laboratory registration successful", function () {
+    pm.expect(pm.response.code).to.be.oneOf([200, 201]);
+});
+
+pm.test("Response structure validation", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success');
+    pm.expect(jsonData.success).to.be.true;
+    pm.expect(jsonData).to.have.property('data');
+    pm.expect(jsonData).to.have.property('message');
+});
+
+pm.test("Laboratory data validation", function () {
+    const jsonData = pm.response.json();
+    const lab = jsonData.data;
+    pm.expect(lab).to.have.property('name');
+    pm.expect(lab).to.have.property('licenseNumber');
+    pm.expect(lab).to.have.property('laboratoryId');
+    pm.expect(lab).to.have.property('status');
+    pm.expect(lab.status).to.equal('active');
+});
+
+pm.test("Save laboratory ID to environment", function () {
+    if (pm.response.code === 201) {
+        const response = pm.response.json();
+        pm.environment.set("laboratory_id", response.data._id || response.data.id);
+        console.log("🏥 Laboratory ID saved:", response.data._id || response.data.id);
+    }
+});
+
+pm.test("Working hours validation", function () {
+    const jsonData = pm.response.json();
+    const workingHours = jsonData.data.workingHours;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach(day => {
+        pm.expect(workingHours).to.have.property(day);
+        pm.expect(workingHours[day]).to.have.property('open');
+        pm.expect(workingHours[day]).to.have.property('close');
+        pm.expect(workingHours[day]).to.have.property('isClosed');
+    });
+});
+
+pm.test("Services array validation", function () {
+    const jsonData = pm.response.json();
+    const services = jsonData.data.services;
+    pm.expect(services).to.be.an('array');
+    pm.expect(services.length).to.be.at.least(5);
+    console.log("🔬 Laboratory offers", services.length, "services");
+});
 ```
 
 #### **List All Laboratories**
@@ -614,10 +661,157 @@ Authorization: Bearer {{access_token}}
 - `search` (optional): Search by name or license number
 - `accreditation` (optional): Filter by accreditation type
 
+**Test Script:**
+```javascript
+pm.test("Laboratories list retrieved successfully", function () {
+    pm.expect(pm.response.code).to.equal(200);
+});
+
+pm.test("Response structure validation", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success', true);
+    pm.expect(jsonData).to.have.property('data');
+    pm.expect(jsonData.data).to.have.property('laboratories');
+    pm.expect(jsonData.data).to.have.property('pagination');
+});
+
+pm.test("Pagination validation", function () {
+    const jsonData = pm.response.json();
+    const pagination = jsonData.data.pagination;
+    pm.expect(pagination).to.have.property('currentPage');
+    pm.expect(pagination).to.have.property('totalPages');
+    pm.expect(pagination).to.have.property('totalLaboratories');
+    pm.expect(pagination).to.have.property('hasNext');
+    pm.expect(pagination).to.have.property('hasPrev');
+    console.log("📄 Page", pagination.currentPage, "of", pagination.totalPages);
+});
+
+pm.test("Laboratory data fields validation", function () {
+    const jsonData = pm.response.json();
+    const laboratories = jsonData.data.laboratories;
+    
+    if (laboratories.length > 0) {
+        laboratories.forEach((lab, index) => {
+            pm.expect(lab).to.have.property('name');
+            pm.expect(lab).to.have.property('licenseNumber');
+            pm.expect(lab).to.have.property('status');
+            pm.expect(lab).to.have.property('address');
+            pm.expect(lab).to.have.property('contact');
+        });
+        console.log("🏥 Found", laboratories.length, "laboratories");
+    }
+});
+
+pm.test("Status filter working", function () {
+    const jsonData = pm.response.json();
+    const laboratories = jsonData.data.laboratories;
+    const urlParams = new URLSearchParams(pm.request.url.split('?')[1]);
+    const statusFilter = urlParams.get('status');
+    
+    if (statusFilter && laboratories.length > 0) {
+        laboratories.forEach(lab => {
+            pm.expect(lab.status).to.equal(statusFilter);
+        });
+        console.log("✅ All laboratories have status:", statusFilter);
+    }
+});
+```
+
 #### **Get Laboratory Details**
 ```http
 GET {{base_url}}/api/v1/laboratories/{{laboratory_id}}
 Authorization: Bearer {{access_token}}
+```
+
+**Test Script:**
+```javascript
+pm.test("Laboratory details retrieved successfully", function () {
+    pm.expect(pm.response.code).to.equal(200);
+});
+
+pm.test("Complete laboratory data validation", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success', true);
+    pm.expect(jsonData).to.have.property('data');
+    
+    const lab = jsonData.data;
+    pm.expect(lab).to.have.property('name');
+    pm.expect(lab).to.have.property('licenseNumber');
+    pm.expect(lab).to.have.property('laboratoryId');
+    pm.expect(lab).to.have.property('address');
+    pm.expect(lab).to.have.property('contact');
+    pm.expect(lab).to.have.property('workingHours');
+    pm.expect(lab).to.have.property('status');
+});
+
+pm.test("Contact information validation", function () {
+    const jsonData = pm.response.json();
+    const contact = jsonData.data.contact;
+    
+    pm.expect(contact).to.have.property('phone');
+    pm.expect(contact).to.have.property('email');
+    pm.expect(contact.phone).to.be.a('string');
+    pm.expect(contact.email).to.be.a('string');
+    
+    // Validate phone format (Moroccan)
+    pm.expect(contact.phone).to.match(/^0[5-7]\d{8}$/);
+    
+    // Validate email format
+    pm.expect(contact.email).to.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/);
+});
+
+pm.test("Working hours structure validation", function () {
+    const jsonData = pm.response.json();
+    const workingHours = jsonData.data.workingHours;
+    const days = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    
+    days.forEach(day => {
+        pm.expect(workingHours).to.have.property(day);
+        const daySchedule = workingHours[day];
+        pm.expect(daySchedule).to.have.property('open');
+        pm.expect(daySchedule).to.have.property('close');
+        pm.expect(daySchedule).to.have.property('isClosed');
+        
+        if (!daySchedule.isClosed) {
+            pm.expect(daySchedule.open).to.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/);
+            pm.expect(daySchedule.close).to.match(/^([01]?[0-9]|2[0-3]):[0-5][0-9]$/);
+        }
+    });
+});
+
+pm.test("Available tests validation", function () {
+    const jsonData = pm.response.json();
+    const tests = jsonData.data.availableTests;
+    
+    if (tests && tests.length > 0) {
+        tests.forEach(test => {
+            pm.expect(test).to.have.property('testCode');
+            pm.expect(test).to.have.property('testName');
+            pm.expect(test).to.have.property('category');
+            pm.expect(test).to.have.property('turnaroundTime');
+            pm.expect(test).to.have.property('price');
+            
+            pm.expect(test.turnaroundTime).to.be.a('number');
+            pm.expect(test.price).to.be.a('number');
+        });
+        console.log("🧪 Laboratory offers", tests.length, "different tests");
+    }
+});
+
+pm.test("Services and specializations validation", function () {
+    const jsonData = pm.response.json();
+    const lab = jsonData.data;
+    
+    if (lab.services) {
+        pm.expect(lab.services).to.be.an('array');
+        console.log("🔬 Services:", lab.services.length);
+    }
+    
+    if (lab.specializations) {
+        pm.expect(lab.specializations).to.be.an('array');
+        console.log("🎯 Specializations:", lab.specializations.length);
+    }
+});
 ```
 
 #### **Update Laboratory Info**
@@ -630,8 +824,8 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "phone": "1234567801",
-  "email": "updated@advanced-diagnostics.com",
+  "phone": "0522123457",
+  "email": "updated@advanced-diagnostics.ma",
   "services": [
     "Blood Tests",
     "Urine Analysis",
@@ -641,15 +835,107 @@ Content-Type: application/json
     "Ultrasound",
     "ECG",
     "Pathology",
-    "Genetic Testing"
+    "Genetic Testing",
+    "Molecular Diagnostics"
+  ],
+  "specializations": [
+    "Clinical Chemistry",
+    "Hematology",
+    "Microbiology",
+    "Immunology",
+    "Molecular Biology"
   ]
 }
+```
+
+**Test Script:**
+```javascript
+pm.test("Laboratory update successful", function () {
+    pm.expect(pm.response.code).to.equal(200);
+});
+
+pm.test("Updated data validation", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success', true);
+    pm.expect(jsonData).to.have.property('data');
+    
+    const lab = jsonData.data;
+    pm.expect(lab.contact.phone).to.equal("0522123457");
+    pm.expect(lab.contact.email).to.equal("updated@advanced-diagnostics.ma");
+});
+
+pm.test("Services array updated correctly", function () {
+    const jsonData = pm.response.json();
+    const services = jsonData.data.services;
+    
+    pm.expect(services).to.be.an('array');
+    pm.expect(services.length).to.equal(10);
+    pm.expect(services).to.include("Molecular Diagnostics");
+    pm.expect(services).to.include("Genetic Testing");
+    console.log("🔄 Laboratory now offers", services.length, "services");
+});
+
+pm.test("Specializations updated correctly", function () {
+    const jsonData = pm.response.json();
+    const specializations = jsonData.data.specializations;
+    
+    if (specializations) {
+        pm.expect(specializations).to.be.an('array');
+        pm.expect(specializations.length).to.equal(5);
+        pm.expect(specializations).to.include("Molecular Biology");
+        console.log("🎯 Laboratory has", specializations.length, "specializations");
+    }
+});
+
+pm.test("Timestamps updated", function () {
+    const jsonData = pm.response.json();
+    const lab = jsonData.data;
+    
+    pm.expect(lab).to.have.property('updatedAt');
+    const updatedAt = new Date(lab.updatedAt);
+    const now = new Date();
+    const timeDiff = now - updatedAt;
+    
+    // Should be updated within last 5 seconds
+    pm.expect(timeDiff).to.be.below(5000);
+});
 ```
 
 #### **Activate Laboratory**
 ```http
 PATCH {{base_url}}/api/v1/laboratories/{{laboratory_id}}/activate
 Authorization: Bearer {{access_token}}
+```
+
+**Test Script:**
+```javascript
+pm.test("Laboratory activation successful", function () {
+    pm.expect(pm.response.code).to.equal(200);
+});
+
+pm.test("Status changed to active", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success', true);
+    pm.expect(jsonData.data.status).to.equal('active');
+    console.log("✅ Laboratory activated successfully");
+});
+
+pm.test("Activation metadata recorded", function () {
+    const jsonData = pm.response.json();
+    const lab = jsonData.data;
+    
+    pm.expect(lab).to.have.property('updatedAt');
+    if (lab.lastActivatedAt) {
+        pm.expect(lab.lastActivatedAt).to.be.a('string');
+        pm.expect(new Date(lab.lastActivatedAt)).to.be.instanceOf(Date);
+    }
+});
+
+pm.test("Laboratory available for operations", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data.status).to.equal('active');
+    console.log("🟢 Laboratory is now available for lab orders");
+});
 ```
 
 #### **Suspend Laboratory**
@@ -662,9 +948,59 @@ Content-Type: application/json
 **Request Body:**
 ```json
 {
-  "reason": "Quality control issues",
-  "suspensionDuration": "15 days"
+  "reason": "Quality control audit pending - equipment calibration required",
+  "suspensionDuration": "15 days",
+  "notifyStaff": true,
+  "allowEmergency": false
 }
+```
+
+**Test Script:**
+```javascript
+pm.test("Laboratory suspension successful", function () {
+    pm.expect(pm.response.code).to.equal(200);
+});
+
+pm.test("Status changed to suspended", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData).to.have.property('success', true);
+    pm.expect(jsonData.data.status).to.equal('suspended');
+    console.log("⏸️ Laboratory suspended successfully");
+});
+
+pm.test("Suspension details recorded", function () {
+    const jsonData = pm.response.json();
+    const lab = jsonData.data;
+    
+    pm.expect(lab).to.have.property('suspensionReason');
+    pm.expect(lab).to.have.property('suspendedAt');
+    pm.expect(lab.suspensionReason).to.include("Quality control audit");
+    
+    const suspendedAt = new Date(lab.suspendedAt);
+    const now = new Date();
+    const timeDiff = now - suspendedAt;
+    
+    // Should be suspended within last 5 seconds
+    pm.expect(timeDiff).to.be.below(5000);
+});
+
+pm.test("Suspension metadata validation", function () {
+    const jsonData = pm.response.json();
+    const suspension = jsonData.data.suspensionDetails;
+    
+    if (suspension) {
+        pm.expect(suspension).to.have.property('duration');
+        pm.expect(suspension).to.have.property('notifyStaff');
+        pm.expect(suspension.duration).to.equal("15 days");
+        pm.expect(suspension.notifyStaff).to.be.true;
+    }
+});
+
+pm.test("Laboratory unavailable for new orders", function () {
+    const jsonData = pm.response.json();
+    pm.expect(jsonData.data.status).to.equal('suspended');
+    console.log("🔴 Laboratory is now suspended - no new lab orders allowed");
+});
 ```
 
 #### **Delete Laboratory**

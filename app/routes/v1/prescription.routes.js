@@ -61,8 +61,8 @@ router.get(
     (req, res) => prescriptionController.getPrescriptionStatus(req, res)
 );
 
-// PATCH /prescriptions/:id/sign - Sign prescription (Doctor only)
-router.patch(
+// PUT /prescriptions/:id/sign - Sign prescription (Doctor only)
+router.put(
     '/:id/sign',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
     (req, res) => prescriptionController.signPrescription(req, res)

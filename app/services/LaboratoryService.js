@@ -4,6 +4,7 @@ import Logger from '../logs/Logger.js';
 class LaboratoryService {
     static async registerLaboratory(data) {
         try {
+            // The model now supports flat fields directly, no transformation needed
             const laboratory = new Laboratory(data);
             await laboratory.save();
             Logger.info('Laboratory registered', { laboratoryId: laboratory._id });
@@ -81,17 +82,34 @@ class LaboratoryService {
         }
     }
 
-    static async suspendLaboratory(laboratoryId, reason) {
+    static async suspendLaboratory(laboratoryId, reason, options = {}) {
         try {
+            const updateData = {
+                status: 'suspended',
+                suspensionReason: reason,
+                suspendedAt: new Date()
+            };
+
+            // Add optional suspension details
+            if (options.duration || options.notifyStaff !== undefined || options.allowEmergency !== undefined) {
+                updateData.suspensionDetails = {
+                    duration: options.duration,
+                    notifyStaff: options.notifyStaff,
+                    allowEmergency: options.allowEmergency
+                };
+            }
+
             const laboratory = await Laboratory.findByIdAndUpdate(
                 laboratoryId,
-                { status: 'suspended', suspensionReason: reason },
+                updateData,
                 { new: true }
             );
+            
             if (!laboratory) {
                 return { success: false, message: 'Laboratory not found' };
             }
-            Logger.info('Laboratory suspended', { laboratoryId });
+            
+            Logger.info('Laboratory suspended', { laboratoryId, reason });
             return { success: true, message: 'Laboratory suspended successfully', data: laboratory };
         } catch (error) {
             Logger.error('Error suspending laboratory', error);

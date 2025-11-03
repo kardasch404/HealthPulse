@@ -39,11 +39,12 @@ class LaboratoryValidator {
         'any.required': 'Address is required'
       }),
     
+    // Contact information - flat structure that will be transformed
     phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
+      .pattern(/^(\+212|0)[5-7]\d{8}$/)
       .required()
       .messages({
-        'string.pattern.base': 'Phone number must be 10 digits',
+        'string.pattern.base': 'Phone number must be a valid Moroccan phone number (e.g., 0522123456)',
         'any.required': 'Phone number is required'
       }),
     
@@ -51,17 +52,39 @@ class LaboratoryValidator {
       .email()
       .lowercase()
       .trim()
-      .allow('', null)
+      .required()
       .messages({
-        'string.email': 'Please provide a valid email address'
+        'string.email': 'Please provide a valid email address',
+        'any.required': 'Email is required'
       }),
 
     emergencyPhone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
+      .pattern(/^(\+212|0)[5-7]\d{8}$/)
       .allow('', null)
       .messages({
-        'string.pattern.base': 'Emergency phone must be 10 digits'
+        'string.pattern.base': 'Emergency phone must be a valid Moroccan phone number'
       }),
+
+    website: Joi.string()
+      .uri()
+      .allow('', null)
+      .messages({
+        'string.uri': 'Website must be a valid URL'
+      }),
+
+    // Additional fields
+    accreditation: Joi.string()
+      .trim()
+      .max(100)
+      .allow('', null),
+
+    certifications: Joi.array()
+      .items(Joi.string().max(100))
+      .default([]),
+
+    services: Joi.array()
+      .items(Joi.string().max(100))
+      .default([]),
 
     specializations: Joi.array()
       .items(Joi.string().max(100))
@@ -113,7 +136,43 @@ class LaboratoryValidator {
 
     status: Joi.string()
       .valid('active', 'suspended', 'inactive')
-      .default('active')
+      .default('active'),
+
+    // Available tests
+    availableTests: Joi.array()
+      .items(Joi.object({
+        testCode: Joi.string().required(),
+        testName: Joi.string().required(),
+        category: Joi.string().valid('hematology', 'biochemistry', 'microbiology', 'immunology', 'molecular_biology', 'pathology', 'imaging', 'other').required(),
+        specimen: Joi.string().valid('blood', 'urine', 'stool', 'sputum', 'tissue', 'swab', 'csf', 'other').optional(),
+        turnaroundTime: Joi.number().required(),
+        price: Joi.number().required(),
+        preparationInstructions: Joi.string().optional()
+      }))
+      .default([]),
+
+    // Equipment
+    equipment: Joi.array()
+      .items(Joi.object({
+        name: Joi.string().required(),
+        manufacturer: Joi.string().optional(),
+        model: Joi.string().optional(),
+        status: Joi.string().valid('operational', 'maintenance', 'out_of_order').default('operational')
+      }))
+      .default([]),
+
+    // Coordinates
+    coordinates: Joi.object({
+      latitude: Joi.number().min(-90).max(90).optional(),
+      longitude: Joi.number().min(-180).max(180).optional()
+    }).optional(),
+
+    // Turnaround time
+    turnaroundTime: Joi.object({
+      routine: Joi.string().optional(),
+      urgent: Joi.string().optional(),
+      stat: Joi.string().optional()
+    }).optional()
   });
 
 
@@ -140,9 +199,9 @@ class LaboratoryValidator {
       }),
     
     phone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
+      .pattern(/^(\+212|0)[5-7]\d{8}$/)
       .messages({
-        'string.pattern.base': 'Phone number must be 10 digits'
+        'string.pattern.base': 'Phone number must be a valid Moroccan phone number (e.g., 0522123456)'
       }),
     
     email: Joi.string()
@@ -155,10 +214,16 @@ class LaboratoryValidator {
       }),
 
     emergencyPhone: Joi.string()
-      .pattern(/^[0-9]{10}$/)
+      .pattern(/^(\+212|0)[5-7]\d{8}$/)
       .allow('', null)
       .messages({
-        'string.pattern.base': 'Emergency phone must be 10 digits'
+        'string.pattern.base': 'Emergency phone must be a valid Moroccan phone number'
+      }),
+
+    services: Joi.array()
+      .items(Joi.string().max(100))
+      .messages({
+        'array.base': 'Services must be an array'
       }),
 
     specializations: Joi.array()

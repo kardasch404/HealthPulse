@@ -22,24 +22,67 @@ const laboratorySchema = new Schema({
     maxlength: [200, 'Name cannot exceed 200 characters']
   },
   
+  licenseNumber: {
+    type: String,
+    required: [true, 'License number is required'],
+    unique: true,
+    trim: true
+  },
+  
   registrationDate: {
     type: Date,
     default: Date.now
   },
   
   // ========================================
-  // CONTACT INFORMATION
+  // CERTIFICATIONS & ACCREDITATION
+  // ========================================
+  accreditation: {
+    type: String,
+    required: [true, 'Accreditation is required'],
+    enum: ['CAP', 'ISO15189', 'CLIA', 'JCI', 'NABL', 'other']
+  },
+  
+  certifications: [{
+    type: String,
+    enum: ['ISO 15189', 'CAP', 'CLIA', 'JCI', 'NABL', 'ISO 9001', 'other']
+  }],
+  
+  // ========================================
+  // CONTACT INFORMATION (Flat structure for compatibility)
+  // ========================================
+  phone: {
+    type: String,
+    required: [true, 'Phone number is required'],
+    match: [/^(\+212|0)[5-7]\d{8}$/, 'Please provide a valid Moroccan phone number']
+  },
+  
+  email: {
+    type: String,
+    required: true,
+    lowercase: true,
+    trim: true,
+    match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
+  },
+  
+  emergencyPhone: {
+    type: String,
+    match: [/^(\+212|0)[5-7]\d{8}$/, 'Please provide a valid Moroccan emergency phone number']
+  },
+  
+  website: String,
+  
+  // ========================================
+  // NESTED CONTACT (For backwards compatibility)
   // ========================================
   contact: {
     phone: {
       type: String,
-      required: [true, 'Phone number is required'],
       match: [/^(\+212|0)[5-7]\d{8}$/, 'Please provide a valid Moroccan phone number']
     },
     
     email: {
       type: String,
-      required: true,
       lowercase: true,
       trim: true,
       match: [/^\S+@\S+\.\S+$/, 'Please provide a valid email']
@@ -51,55 +94,95 @@ const laboratorySchema = new Schema({
   },
   
   // ========================================
-  // ADDRESS
+  // ADDRESS (Flat and nested support)
   // ========================================
   address: {
+    type: String,  // Full address as string
+    required: [true, 'Address is required'],
+    trim: true
+  },
+  
+  // Detailed address structure
+  addressDetails: {
     street: {
       type: String,
-      required: true,
       trim: true
     },
     
     city: {
       type: String,
-      required: true,
       trim: true
     },
     
     state: String,
     
-    zipCode: {
-      type: String,
-      required: true
-    },
+    zipCode: String,
     
     country: {
       type: String,
       default: 'Morocco'
+    }
+  },
+  
+  coordinates: {
+    latitude: {
+      type: Number,
+      min: -90,
+      max: 90
     },
-    
-    coordinates: {
-      latitude: {
-        type: Number,
-        min: -90,
-        max: 90
-      },
-      longitude: {
-        type: Number,
-        min: -180,
-        max: 180
-      }
+    longitude: {
+      type: Number,
+      min: -180,
+      max: 180
     }
   },
   
   // ========================================
-  // OPERATING HOURS
+  // OPERATING HOURS - Support both structures
   // ========================================
+  workingHours: {
+    monday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    tuesday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    wednesday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    thursday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    friday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    saturday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    },
+    sunday: {
+      open: String,
+      close: String,
+      isClosed: { type: Boolean, default: false }
+    }
+  },
+  
+  // Legacy operating hours structure
   operatingHours: [{
     day: {
       type: String,
-      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'],
-      required: true
+      enum: ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']
     },
     
     openTime: {
@@ -258,8 +341,52 @@ const laboratorySchema = new Schema({
   // ========================================
   services: [{
     type: String,
-    enum: ['routine_testing', 'urgent_testing']
+    enum: [
+      'Blood Tests',
+      'Urine Analysis', 
+      'X-Ray',
+      'CT Scan',
+      'MRI',
+      'Ultrasound',
+      'ECG',
+      'Pathology',
+      'Microbiology',
+      'Genetic Testing',
+      'Molecular Diagnostics',
+      'Cardiac Catheterization',
+      'routine_testing',
+      'urgent_testing',
+      'emergency_testing'
+    ]
   }],
+  
+  // ========================================
+  // SPECIALIZATIONS
+  // ========================================
+  specializations: [{
+    type: String,
+    enum: [
+      'Clinical Chemistry',
+      'Hematology', 
+      'Microbiology',
+      'Immunology',
+      'Molecular Biology',
+      'Pathology',
+      'Radiology',
+      'Cardiology',
+      'Cytogenetics',
+      'Toxicology'
+    ]
+  }],
+  
+  // ========================================
+  // TURNAROUND TIME
+  // ========================================
+  turnaroundTime: {
+    routine: String,
+    urgent: String,
+    stat: String
+  },
   
   // ========================================
   // EQUIPMENT & TECHNOLOGY

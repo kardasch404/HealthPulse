@@ -7,6 +7,8 @@ import terminsRoutes from './termins.routes.js';
 import pharmacyRoutes from './pharmacy.routes.js';
 import consultationRoutes from './consultation.routes.js';
 import prescriptionRoutes from './prescription.routes.js';
+import laboratoryRoutes from './laboratories.routes.js';
+import labOrderRoutes from './labOrders.routes.js';
 
 const router = express.Router();
 
@@ -18,5 +20,7 @@ router.use('/termins', terminsRoutes);
 router.use('/pharmacies', pharmacyRoutes);
 router.use('/consultations', consultationRoutes);
 router.use('/prescriptions', prescriptionRoutes);
+router.use('/laboratories', laboratoryRoutes);
+router.use('/lab-orders', labOrderRoutes);
 
 export default router;
