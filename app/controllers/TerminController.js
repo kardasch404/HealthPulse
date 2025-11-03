@@ -4,8 +4,8 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 
 class TerminController extends BaseController {
     /**
-     * Create a termin (appointment)
-     * POST /api/v1/termins
+     * @route POST /api/v1/termins
+     * @access Doctor, Nurse, Patient
      */
     async createTermin(req, res) {
         try {
@@ -37,8 +37,8 @@ class TerminController extends BaseController {
     }
 
     /**
-     * Get termin by ID
-     * GET /api/v1/termins/:id
+     * @route GET /api/v1/termins/:id
+     * @access Doctor, Nurse, Patient
      */
     async getTerminById(req, res) {
         try {
@@ -52,7 +52,6 @@ class TerminController extends BaseController {
                 });
             }
 
-            // Check if user has access to this termin
             const { userId, role } = req.user;
             const termin = result.data;
             
@@ -80,14 +79,13 @@ class TerminController extends BaseController {
     }
 
     /**
-     * Get all appointments with filters
-     * GET /api/v1/termins/all
+     * @route GET /api/v1/termins
+     * @access Doctor, Nurse
      */
     async getAllTermins(req, res) {
         try {
             const { role } = req.user;
             
-            // Only admin, nurse, and reception can view all appointments
             if (!['admin', 'nurse', 'reception'].includes(role)) {
                 return this.handleError(res, {
                     message: 'Access denied. Insufficient permissions.',
@@ -128,10 +126,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Get patient's appointments
-     * GET /api/v1/termins/patient/:patientId
-     */
     async getPatientTermins(req, res) {
         try {
             const { patientId } = req.params;
@@ -158,10 +152,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Get doctor's schedule
-     * GET /api/v1/termins/doctor/:doctorId/schedule
-     */
     async getDoctorSchedule(req, res) {
         try {
             const { doctorId } = req.params;
@@ -192,10 +182,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Check doctor availability
-     * GET /api/v1/termins/availability/:doctorId
-     */
     async checkAvailability(req, res) {
         try {
             const { doctorId } = req.params;
@@ -230,10 +216,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Find available doctors
-     * GET /api/v1/termins/find-doctors
-     */
     async findAvailableDoctors(req, res) {
         try {
             const { date, startTime, endTime, specialization } = req.query;
@@ -269,8 +251,8 @@ class TerminController extends BaseController {
     }
 
     /**
-     * Update appointment
-     * PUT /api/v1/termins/:id
+     * @route PUT /api/v1/termins/:id
+     * @access Doctor, Nurse
      */
     async updateTermin(req, res) {
         try {
@@ -295,10 +277,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Confirm appointment
-     * PATCH /api/v1/termins/:id/confirm
-     */
     async confirmTermin(req, res) {
         try {
             const { id } = req.params;
@@ -321,10 +299,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Cancel appointment
-     * PATCH /api/v1/termins/:id/cancel
-     */
     async cancelTermin(req, res) {
         try {
             const { id } = req.params;
@@ -355,10 +329,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Complete appointment
-     * PATCH /api/v1/termins/:id/complete
-     */
     async completeTermin(req, res) {
         try {
             const { id } = req.params;
@@ -381,10 +351,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Get upcoming appointments
-     * GET /api/v1/termins/upcoming
-     */
     async getUpcomingTermins(req, res) {
         try {
             const { doctorId, patientId, days } = req.query;
@@ -411,10 +377,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Get today's appointments for doctor
-     * GET /api/v1/termins/today/:doctorId
-     */
     async getTodayTermins(req, res) {
         try {
             const { doctorId } = req.params;
@@ -437,10 +399,6 @@ class TerminController extends BaseController {
         }
     }
 
-    /**
-     * Reschedule appointment
-     * POST /api/v1/termins/:id/reschedule
-     */
     async rescheduleTermin(req, res) {
         try {
             const { id } = req.params;

@@ -5,25 +5,19 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 class DocumentService {
-    /**
-     * Upload a medical document
-     */
     static async uploadDocument(fileData, metadata, uploadedBy) {
         try {
             const { buffer, originalname, mimetype, size } = fileData;
             
-            // Generate unique filename
             const fileExtension = path.extname(originalname);
             const fileName = `${uuidv4()}${fileExtension}`;
             const minioPath = `medical-documents/${metadata.patientId}/${fileName}`;
             
-            // Upload to MinIO
             await minioClient.uploadBuffer(minioPath, buffer, {
                 'Content-Type': mimetype,
                 'Original-Name': originalname
             });
             
-            // Create document record
             const document = new MedicalDocument({
                 patientId: metadata.patientId,
                 uploadedBy,
@@ -66,9 +60,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Get document by ID
-     */
     static async getDocumentById(documentId, userId) {
         try {
             const document = await MedicalDocument.findById(documentId)
@@ -85,7 +76,6 @@ class DocumentService {
                 };
             }
             
-            // Record view
             await document.recordView(userId, 'N/A');
             
             return {
@@ -101,9 +91,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * List documents for a patient
-     */
     static async listPatientDocuments(patientId, filters = {}) {
         try {
             const query = { patientId, status: { $ne: 'deleted' } };
@@ -160,9 +147,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Download document
-     */
     static async downloadDocument(documentId, userId) {
         try {
             const document = await MedicalDocument.findById(documentId);
@@ -174,10 +158,8 @@ class DocumentService {
                 };
             }
             
-            // Get file stream from MinIO
             const fileStream = await minioClient.getFileStream(document.minioPath);
             
-            // Record download
             await document.recordDownload(userId, 'N/A');
             
             return {
@@ -198,9 +180,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Update document metadata
-     */
     static async updateDocument(documentId, updates, userId) {
         try {
             const document = await MedicalDocument.findById(documentId);
@@ -212,7 +191,6 @@ class DocumentService {
                 };
             }
             
-            // Update allowed fields
             const allowedUpdates = [
                 'title', 'description', 'documentType', 'category',
                 'tags', 'confidentialityLevel', 'documentDate'
@@ -242,9 +220,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Delete document (soft delete)
-     */
     static async deleteDocument(documentId, userId, reason) {
         try {
             const document = await MedicalDocument.findById(documentId);
@@ -273,9 +248,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Get documents by consultation
-     */
     static async getConsultationDocuments(consultationId) {
         try {
             const documents = await MedicalDocument.findByConsultation(consultationId);
@@ -293,9 +265,6 @@ class DocumentService {
         }
     }
     
-    /**
-     * Get documents by lab order
-     */
     static async getLabOrderDocuments(labOrderId) {
         try {
             const documents = await MedicalDocument.findByLabOrder(labOrderId);

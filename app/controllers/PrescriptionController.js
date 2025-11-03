@@ -4,9 +4,8 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 
 class PrescriptionController extends BaseController {
     /**
-     * Create prescription
      * @route POST /api/v1/prescriptions
-     * @access Doctor only
+     * @access Doctor
      */
     async createPrescription(req, res) {
         try {
@@ -34,11 +33,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Add medication to prescription
-     * @route POST /api/v1/prescriptions/:id/medications
-     * @access Doctor only
-     */
     async addMedication(req, res) {
         try {
             const { id } = req.params;
@@ -61,11 +55,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * List all prescriptions with filters
-     * @route GET /api/v1/prescriptions/all
-     * @access Admin, Doctor
-     */
     async getAllPrescriptions(req, res) {
         try {
             const { patientId, doctorId, pharmacyId, status, dateFrom, dateTo, page, limit } = req.query;
@@ -102,9 +91,8 @@ class PrescriptionController extends BaseController {
     }
 
     /**
-     * Get prescription details
      * @route GET /api/v1/prescriptions/:id
-     * @access Doctor, Patient (own), Pharmacist (assigned), Admin
+     * @access Doctor, Pharmacist
      */
     async getPrescriptionById(req, res) {
         try {
@@ -119,7 +107,6 @@ class PrescriptionController extends BaseController {
                 });
             }
 
-            // Check authorization
             const { userId, role } = req.user;
             const prescription = result.data;
             
@@ -146,9 +133,8 @@ class PrescriptionController extends BaseController {
     }
 
     /**
-     * Update prescription (draft only)
      * @route PUT /api/v1/prescriptions/:id
-     * @access Doctor only
+     * @access Doctor
      */
     async updatePrescription(req, res) {
         try {
@@ -172,11 +158,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Sign prescription
-     * @route PATCH /api/v1/prescriptions/:id/sign
-     * @access Doctor only
-     */
     async signPrescription(req, res) {
         try {
             const { id } = req.params;
@@ -200,11 +181,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Assign prescription to pharmacy
-     * @route PATCH /api/v1/prescriptions/:id/assign-pharmacy
-     * @access Doctor only
-     */
     async assignToPharmacy(req, res) {
         try {
             const { id } = req.params;
@@ -235,11 +211,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Update prescription status
-     * @route PATCH /api/v1/prescriptions/:id/status
-     * @access Pharmacist (for assigned prescriptions)
-     */
     async updatePrescriptionStatus(req, res) {
         try {
             const { id } = req.params;
@@ -270,11 +241,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Cancel prescription
-     * @route PATCH /api/v1/prescriptions/:id/cancel
-     * @access Doctor only
-     */
     async cancelPrescription(req, res) {
         try {
             const { id } = req.params;
@@ -304,11 +270,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * List my prescriptions (for current user)
-     * @route GET /api/v1/prescriptions
-     * @access Doctor, Patient
-     */
     async listMyPrescriptions(req, res) {
         try {
             const { userId, role } = req.user;
@@ -316,13 +277,11 @@ class PrescriptionController extends BaseController {
             
             let filters = {};
             
-            // Based on role, filter prescriptions
             if (role === 'doctor') {
                 filters.doctorId = userId;
             } else if (role === 'patient') {
                 filters.patientId = userId;
             } else if (role === 'pharmacist') {
-                // Get pharmacy ID from user profile or request
                 filters.pharmacyId = req.user.pharmacyId || req.query.pharmacyId;
             }
             
@@ -351,20 +310,10 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Get my prescriptions (alias for listMyPrescriptions)
-     * @route GET /api/v1/prescriptions/my-prescriptions
-     * @access Doctor, Patient
-     */
     async getMyPrescriptions(req, res) {
         return this.listMyPrescriptions(req, res);
     }
 
-    /**
-     * Get prescription status
-     * @route GET /api/v1/prescriptions/:id/status
-     * @access Doctor, Patient (own), Pharmacist (assigned)
-     */
     async getPrescriptionStatus(req, res) {
         try {
             const { id } = req.params;
@@ -378,7 +327,6 @@ class PrescriptionController extends BaseController {
                 });
             }
 
-            // Check authorization
             const { userId, role } = req.user;
             const prescription = result.data;
             
@@ -411,11 +359,6 @@ class PrescriptionController extends BaseController {
         }
     }
 
-    /**
-     * Get pharmacy prescriptions (for pharmacist)
-     * @route GET /api/v1/prescriptions/pharmacy/:pharmacyId
-     * @access Pharmacist only
-     */
     async getPharmacyPrescriptions(req, res) {
         try {
             const { pharmacyId } = req.params;

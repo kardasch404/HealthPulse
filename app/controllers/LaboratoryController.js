@@ -6,14 +6,8 @@ import Logger from '../logs/Logger.js';
 
 class LaboratoryController extends BaseController {
     
-    /**
-     * Register new laboratory
-     * @route POST /api/v1/laboratories
-     * @access Admin only
-     */
     async registerLaboratory(req, res) {
         try {
-            // Validate input data
             const validation = LaboratoryValidator.validateRegister(req.body);
             if (!validation.valid) {
                 return this.handleError(res, {
@@ -47,9 +41,8 @@ class LaboratoryController extends BaseController {
     }
 
     /**
-     * Get all laboratories with filtering
      * @route GET /api/v1/laboratories
-     * @access Admin, Doctor, Lab Technician
+     * @access Doctor, Lab Technician
      */
     async getAllLaboratories(req, res) {
         try {
@@ -87,9 +80,8 @@ class LaboratoryController extends BaseController {
     }
 
     /**
-     * Get laboratory by ID
      * @route GET /api/v1/laboratories/:id
-     * @access Admin, Doctor, Lab Technician
+     * @access Doctor, Lab Technician
      */
     async getLaboratoryById(req, res) {
         try {
@@ -118,15 +110,13 @@ class LaboratoryController extends BaseController {
     }
 
     /**
-     * Update laboratory
      * @route PUT /api/v1/laboratories/:id
-     * @access Admin only
+     * @access Admin
      */
     async updateLaboratory(req, res) {
         try {
             const { id } = req.params;
 
-            // Validate input data
             const validation = LaboratoryValidator.validateUpdate(req.body);
             if (!validation.valid) {
                 return this.handleError(res, {
@@ -158,11 +148,6 @@ class LaboratoryController extends BaseController {
         }
     }
 
-    /**
-     * Activate laboratory
-     * @route PATCH /api/v1/laboratories/:id/activate
-     * @access Admin only
-     */
     async activateLaboratory(req, res) {
         try {
             const { id } = req.params;
@@ -189,11 +174,6 @@ class LaboratoryController extends BaseController {
         }
     }
 
-    /**
-     * Suspend laboratory
-     * @route PATCH /api/v1/laboratories/:id/suspend
-     * @access Admin only
-     */
     async suspendLaboratory(req, res) {
         try {
             const { id } = req.params;
@@ -225,11 +205,6 @@ class LaboratoryController extends BaseController {
         }
     }
 
-    /**
-     * Delete laboratory
-     * @route DELETE /api/v1/laboratories/:id
-     * @access Admin only
-     */
     async deleteLaboratory(req, res) {
         try {
             const { id } = req.params;
@@ -255,11 +230,6 @@ class LaboratoryController extends BaseController {
         }
     }
 
-    /**
-     * Search laboratories
-     * @route GET /api/v1/laboratories/search
-     * @access Admin, Doctor, Lab Technician
-     */
     async searchLaboratories(req, res) {
         try {
             const { q } = req.query;

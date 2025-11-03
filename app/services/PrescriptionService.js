@@ -4,7 +4,6 @@ import Pharmacy from '../models/Pharmacy.js';
 import Logger from '../logs/Logger.js';
 
 class PrescriptionService {
-    // CREATE
     static async createPrescription(data) {
         try {
             const { consultationId, patientId, doctorId, medications, notes, createdBy } = data;
@@ -40,7 +39,6 @@ class PrescriptionService {
         }
     }
 
-    // READ
     static async getPrescriptionById(prescriptionId) {
         try {
             const prescription = await Prescription.findById(prescriptionId)
@@ -98,7 +96,6 @@ class PrescriptionService {
         }
     }
 
-    // UPDATE
     static async addMedication(prescriptionId, medication) {
         try {
             const prescription = await Prescription.findById(prescriptionId);
@@ -138,12 +135,9 @@ class PrescriptionService {
                 currentMedications: prescription.medications.map(m => ({ id: m._id, name: m.medicationName }))
             });
 
-            // Handle medication updates specially
             if (updates.medications && Array.isArray(updates.medications)) {
-                // If medications are provided, update them properly
                 for (const medicationUpdate of updates.medications) {
                     if (medicationUpdate.id) {
-                        // Update existing medication by ID
                         const medication = prescription.medications.id(medicationUpdate.id);
                         Logger.info('Looking for medication', { 
                             searchId: medicationUpdate.id, 
@@ -152,7 +146,6 @@ class PrescriptionService {
                         });
                         
                         if (medication) {
-                            // Only update provided fields, keep existing ones
                             Object.keys(medicationUpdate).forEach(key => {
                                 if (key !== 'id') {
                                     medication[key] = medicationUpdate[key];
@@ -164,16 +157,13 @@ class PrescriptionService {
                             return { success: false, message: `Medication with ID ${medicationUpdate.id} not found` };
                         }
                     } else {
-                        // If no ID provided, treat as new medication (must have all required fields)
                         prescription.medications.push(medicationUpdate);
                         Logger.info('Added new medication', { medication: medicationUpdate });
                     }
                 }
-                // Remove medications from updates to avoid overwriting
                 delete updates.medications;
             }
 
-            // Update other fields
             Object.assign(prescription, updates);
             await prescription.save();
 
@@ -204,7 +194,6 @@ class PrescriptionService {
                 return { success: false, message: 'Cannot sign empty prescription' };
             }
 
-            // Use the model's signPrescription method which sets the correct status
             await prescription.signPrescription(doctorId);
 
             Logger.info('Prescription signed', { prescriptionId });
@@ -296,7 +285,6 @@ class PrescriptionService {
         }
     }
 
-    // For pharmacist
     static async getPharmacyPrescriptions(pharmacyId, status = null) {
         try {
             const query = { assignedPharmacyId: pharmacyId };

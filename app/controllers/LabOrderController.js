@@ -6,9 +6,8 @@ import Logger from '../logs/Logger.js';
 
 class LabOrderController extends BaseController {
     /**
-     * Create lab order
      * @route POST /api/v1/lab-orders
-     * @access Doctor only
+     * @access Doctor
      */
     async createLabOrder(req, res) {
         try {
@@ -37,9 +36,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Add test to existing lab order
      * @route PUT /api/v1/lab-orders/:id/tests
-     * @access Doctor only
+     * @access Doctor, Lab Technician
      */
     async addTest(req, res) {
         try {
@@ -65,9 +63,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get all lab orders with filters
      * @route GET /api/v1/lab-orders
-     * @access Doctor, Admin, Lab Technician
+     * @access Doctor, Lab Technician, Nurse
      */
     async getAllLabOrders(req, res) {
         try {
@@ -116,9 +113,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get lab order by ID
      * @route GET /api/v1/lab-orders/:id
-     * @access Doctor, Patient, Lab Technician
+     * @access Doctor, Lab Technician, Nurse
      */
     async getLabOrderById(req, res) {
         try {
@@ -144,9 +140,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get lab order by order number
      * @route GET /api/v1/lab-orders/order-number/:orderNumber
-     * @access Doctor, Patient, Lab Technician
+     * @access Doctor, Lab Technician, Nurse
      */
     async getLabOrderByOrderNumber(req, res) {
         try {
@@ -172,9 +167,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get lab orders by patient
      * @route GET /api/v1/lab-orders/patient/:patientId
-     * @access Doctor, Patient
+     * @access Doctor, Lab Technician, Nurse
      */
     async getLabOrdersByPatient(req, res) {
         try {
@@ -204,9 +198,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Update lab order status
      * @route PATCH /api/v1/lab-orders/:id/status
-     * @access Lab Technician, Doctor
+     * @access Doctor, Lab Technician
      */
     async updateLabOrderStatus(req, res) {
         try {
@@ -234,7 +227,6 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Update test status
      * @route PATCH /api/v1/lab-orders/:id/tests/:testId/status
      * @access Lab Technician
      */
@@ -271,8 +263,7 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Add test results
-     * @route POST /api/v1/lab-orders/:id/tests/:testId/results
+     * @route PUT /api/v1/lab-orders/:id/tests/:testId/results
      * @access Lab Technician
      */
     async addTestResults(req, res) {
@@ -300,9 +291,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get lab results
      * @route GET /api/v1/lab-orders/:id/results
-     * @access Doctor, Patient, Lab Technician
+     * @access Doctor, Lab Technician, Nurse
      */
     async getLabResults(req, res) {
         try {
@@ -328,8 +318,7 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Cancel lab order
-     * @route POST /api/v1/lab-orders/:id/cancel
+     * @route DELETE /api/v1/lab-orders/:id/cancel
      * @access Doctor
      */
     async cancelLabOrder(req, res) {
@@ -358,7 +347,6 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get lab order statistics
      * @route GET /api/v1/lab-orders/statistics
      * @access Doctor, Lab Technician, Admin
      */
@@ -392,7 +380,6 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Upload lab results as JSON
      * @route POST /api/v1/lab-orders/:id/upload-results
      * @access Lab Technician
      */
@@ -402,7 +389,6 @@ class LabOrderController extends BaseController {
             const resultsData = req.body;
             const userId = req.user.userId;
 
-            // Get lab order first
             const labOrderResult = await LabOrderService.getLabOrderById(id);
             if (!labOrderResult.success) {
                 return this.handleError(res, {
@@ -413,7 +399,6 @@ class LabOrderController extends BaseController {
 
             const labOrder = labOrderResult.data;
 
-            // Update test results
             for (const testResult of resultsData.tests) {
                 await LabOrderService.addTestResults(id, testResult.testId, {
                     results: testResult.results,
@@ -434,7 +419,6 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Upload lab report PDF
      * @route POST /api/v1/lab-orders/:id/upload-report
      * @access Lab Technician
      */
@@ -449,7 +433,6 @@ class LabOrderController extends BaseController {
                 });
             }
 
-            // Get lab order
             const labOrderResult = await LabOrderService.getLabOrderById(id);
             if (!labOrderResult.success) {
                 return this.handleError(res, {
@@ -460,7 +443,6 @@ class LabOrderController extends BaseController {
 
             const labOrder = labOrderResult.data;
 
-            // Upload document
             const documentMetadata = {
                 patientId: labOrder.patientId._id || labOrder.patientId,
                 documentType: 'lab_report',
@@ -494,9 +476,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Mark lab order as validated
      * @route POST /api/v1/lab-orders/:id/validate
-     * @access Lab Technician (Senior)
+     * @access Lab Technician
      */
     async validateLabOrder(req, res) {
         try {
@@ -529,9 +510,8 @@ class LabOrderController extends BaseController {
     }
 
     /**
-     * Get result history for a lab order
      * @route GET /api/v1/lab-orders/:id/result-history
-     * @access Doctor, Lab Technician
+     * @access Doctor, Lab Technician, Nurse
      */
     async getResultHistory(req, res) {
         try {
@@ -548,7 +528,6 @@ class LabOrderController extends BaseController {
 
             const labOrder = result.data;
 
-            // Extract status history and test update history
             const history = {
                 orderNumber: labOrder.orderNumber,
                 statusHistory: labOrder.statusHistory || [],

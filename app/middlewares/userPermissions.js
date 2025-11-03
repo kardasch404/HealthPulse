@@ -8,12 +8,10 @@ export const canCreateUserRole = (req, res, next) => {
         const requestingUserRole = req.user?.role;
         const targetRoleId = req.body?.roleId;
 
-        // Check if user is authenticated
         if (!requestingUserRole) {
             throw new ForbiddenError('Authentication required');
         }
 
-        // Only admin can create users
         if (requestingUserRole !== ROLES.ADMIN) {
             Logger.warn(`Unauthorized user creation attempt by role: ${requestingUserRole}`);
             throw new ForbiddenError('Only administrators can create user accounts');
@@ -74,7 +72,6 @@ export const canCreateSpecificRole = (req, res, next) => {
             throw new ForbiddenError('Authentication required');
         }
 
-        // Define role creation permissions
         const roleCreationPermissions = {
             [ROLES.ADMIN]: [ROLES.ADMIN, ROLES.DOCTOR, ROLES.NURSE, ROLES.RECEPTION, ROLES.PATIENT],
             [ROLES.DOCTOR]: [], // Doctors cannot create users
@@ -85,8 +82,6 @@ export const canCreateSpecificRole = (req, res, next) => {
 
         const allowedRoles = roleCreationPermissions[requestingUserRole] || [];
 
-        // For now, we check against role names
-        // In production, you'd verify targetRoleId against the actual role document
         if (allowedRoles.length === 0) {
             Logger.warn(`User with role ${requestingUserRole} attempted to create user`);
             throw new ForbiddenError('You do not have permission to create user accounts');

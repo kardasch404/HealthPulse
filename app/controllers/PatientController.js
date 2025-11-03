@@ -11,13 +11,11 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Create a new patient
      * @route POST /api/v1/patients
-     * @access Doctor, Nurse, Reception, Admin
+     * @access Doctor, Nurse
      */
     async createPatient(req, res) {
         try {
-            // Get patient role ID
             const patientRole = await Role.findOne({ name: ROLES.PATIENT });
             if (!patientRole) {
                 return this.handleError(res, {
@@ -26,7 +24,6 @@ class PatientController extends BaseController {
                 });
             }
 
-            // Add patient role to request body
             const patientData = {
                 ...req.body,
                 roleId: patientRole._id
@@ -44,15 +41,13 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Get all patients
      * @route GET /api/v1/patients
-     * @access Doctor, Nurse, Reception, Admin
+     * @access Doctor, Nurse
      */
     async getAllPatients(req, res) {
         try {
             const { page = 1, limit = 10, search } = req.query;
             
-            // Get patient role ID
             const patientRole = await Role.findOne({ name: ROLES.PATIENT });
             if (!patientRole) {
                 return this.handleError(res, {
@@ -79,9 +74,8 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Get patient by ID
      * @route GET /api/v1/patients/:id
-     * @access Doctor, Nurse, Reception, Admin, Patient (own)
+     * @access Doctor, Nurse, Patient
      */
     async getPatientById(req, res) {
         try {
@@ -89,7 +83,6 @@ class PatientController extends BaseController {
             
             const patient = await this.userService.getUserById(id);
 
-            // Verify it's actually a patient
             const patientRole = await Role.findOne({ name: ROLES.PATIENT });
             if (patient.roleId.toString() !== patientRole._id.toString()) {
                 return this.handleError(res, {
@@ -108,9 +101,8 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Update patient
      * @route PUT /api/v1/patients/:id
-     * @access Doctor, Nurse, Reception, Admin, Patient (own)
+     * @access Doctor, Nurse
      */
     async updatePatient(req, res) {
         try {
@@ -128,9 +120,8 @@ class PatientController extends BaseController {
     }
 
     /**
-     * Delete/Deactivate patient
      * @route DELETE /api/v1/patients/:id
-     * @access Admin only
+     * @access Admin
      */
     async deletePatient(req, res) {
         try {
@@ -146,11 +137,6 @@ class PatientController extends BaseController {
         }
     }
 
-    /**
-     * Search patients
-     * @route GET /api/v1/patients/search
-     * @access Doctor, Nurse, Reception, Admin
-     */
     async searchPatients(req, res) {
         try {
             const { q, limit = 10 } = req.query;
@@ -178,11 +164,6 @@ class PatientController extends BaseController {
         }
     }
 
-    /**
-     * Get patient medical history
-     * @route GET /api/v1/patients/:id/medical-history
-     * @access Doctor, Nurse, Admin, Patient (own)
-     */
     async getPatientMedicalHistory(req, res) {
         try {
             const { id } = req.params;
@@ -194,11 +175,8 @@ class PatientController extends BaseController {
                 toDate 
             } = req.query;
 
-            // Verify patient exists
             const patient = await this.userService.getUserById(id);
             
-            // Here you would gather medical history from consultations, prescriptions, etc.
-            // For now, return a placeholder structure
             const medicalHistory = {
                 patient: patient,
                 consultations: includeConsultations ? [] : undefined,

@@ -1,7 +1,3 @@
-/**
- * Termin Service (Appointment Service)
- * Complete CRUD operations with conflict management
- */
 
 import Termin from '../models/Termin.js';
 import User from '../models/User.js';
@@ -9,17 +5,12 @@ import Logger from '../logs/Logger.js';
 import TerminConflictManager from '../utils/TerminConflictManager.js';
 
 class TerminService {
-    /**
-     * CREATE - Book a new appointment
-     */
     static async createTermin(data) {
         try {
             const { patientId, doctorId, date, startTime, duration, type, notes, createdBy } = data;
 
-            // Calculate end time
             const endTime = TerminConflictManager.addMinutesToTime(startTime, duration);
 
-            // Check doctor availability
             const availability = await TerminConflictManager.checkDoctorAvailability(
                 doctorId,
                 new Date(date),
@@ -28,7 +19,6 @@ class TerminService {
             );
 
             if (!availability.available) {
-                // Get alternative slots
                 const alternatives = await TerminConflictManager.suggestAlternativeSlots(
                     doctorId,
                     new Date(date),
@@ -43,7 +33,6 @@ class TerminService {
                 };
             }
 
-            // Create the appointment
             const termin = new Termin({
                 patientId,
                 doctorId,
@@ -74,9 +63,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Get appointment by ID
-     */
     static async getTerminById(terminId) {
         try {
             const termin = await Termin.findById(terminId)
@@ -102,9 +88,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Get all appointments with filters
-     */
     static async getAllTermins(filters = {}, page = 1, limit = 10) {
         try {
             const {
@@ -158,9 +141,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Get patient's appointments
-     */
     static async getPatientTermins(patientId, includeCompleted = false) {
         try {
             const query = { patientId };
@@ -184,9 +164,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Get doctor's schedule
-     */
     static async getDoctorSchedule(doctorId, dateFrom, dateTo) {
         try {
             const termins = await Termin.find({
@@ -211,9 +188,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Check availability and get available slots
-     */
     static async checkAvailability(doctorId, date, duration = 30) {
         try {
             const availableSlots = await TerminConflictManager.getAvailableTimeSlots(
@@ -236,9 +210,6 @@ class TerminService {
         }
     }
 
-    /**
-     * READ - Find available doctors
-     */
     static async findAvailableDoctors(date, startTime, endTime, specialization = null) {
         try {
             const doctors = await TerminConflictManager.findAvailableDoctors(
@@ -262,9 +233,6 @@ class TerminService {
         }
     }
 
-    /**
-     * UPDATE - Update appointment
-     */
     static async updateTermin(terminId, updates) {
         try {
             const termin = await Termin.findById(terminId);
@@ -276,7 +244,6 @@ class TerminService {
                 };
             }
 
-            // If updating time, check availability
             if (updates.date || updates.startTime || updates.duration) {
                 const newDate = updates.date ? new Date(updates.date) : termin.date;
                 const newStartTime = updates.startTime || termin.startTime;
@@ -319,9 +286,6 @@ class TerminService {
         }
     }
 
-    /**
-     * UPDATE - Update appointment status
-     */
     static async updateStatus(terminId, status, reason = null) {
         try {
             const validStatuses = ['scheduled', 'confirmed', 'in-progress', 'completed', 'cancelled', 'no-show'];
@@ -369,30 +333,18 @@ class TerminService {
         }
     }
 
-    /**
-     * UPDATE - Confirm appointment
-     */
     static async confirmTermin(terminId) {
         return this.updateStatus(terminId, 'confirmed');
     }
 
-    /**
-     * UPDATE - Cancel appointment
-     */
     static async cancelTermin(terminId, reason) {
         return this.updateStatus(terminId, 'cancelled', reason);
     }
 
-    /**
-     * UPDATE - Complete appointment
-     */
     static async completeTermin(terminId) {
         return this.updateStatus(terminId, 'completed');
     }
 
-    /**
-     * DELETE - Delete appointment (soft delete)
-     */
     static async deleteTermin(terminId, reason = 'Deleted by user') {
         try {
             return this.cancelTermin(terminId, reason);
@@ -402,9 +354,6 @@ class TerminService {
         }
     }
 
-    /**
-     * UTILITY - Get upcoming appointments
-     */
     static async getUpcomingTermins(doctorId = null, patientId = null, days = 7) {
         try {
             const query = {
@@ -434,9 +383,6 @@ class TerminService {
         }
     }
 
-    /**
-     * UTILITY - Get today's appointments
-     */
     static async getTodayTermins(doctorId) {
         try {
             const today = new Date();
@@ -466,9 +412,6 @@ class TerminService {
         }
     }
 
-    /**
-     * UTILITY - Reschedule appointment
-     */
     static async rescheduleTermin(terminId, newDate, newStartTime, newDuration = null) {
         try {
             const termin = await Termin.findById(terminId);
