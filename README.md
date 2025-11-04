@@ -668,7 +668,7 @@ graph LR
     B -->|Info Level| D[Info Files]
     B -->|Debug Level| E[Debug Files]
     A -->|Metrics| F[Health Endpoint]
-    F -->|Status| G[/health]
+    F -->|Status| G[Health Check]
     A -->|Queue| H[Bull Dashboard]
     H -->|Jobs| I[Redis]
 ```
