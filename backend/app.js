@@ -1,0 +1,60 @@
+import createError from 'http-errors';
+import express from 'express';
+import path from 'path';
+import cookieParser from 'cookie-parser';
+import logger from 'morgan';
+import cors from 'cors';
+import { fileURLToPath } from 'url';
+import { dirname } from 'path';
+
+import { connectDB } from './app/config/db.js';
+import minioClient from './app/config/minio.js';
+import indexRouter from './app/routes/index.js';
+import apiV1Routes from './app/routes/v1/index.js';
+import { errorHandler } from './app/middlewares/errorHandler.js';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+// Initialize database connection
+await connectDB();
+
+// Initialize MinIO connection
+try {
+    await minioClient.connect();
+    console.log('[MINIO] MinIO connected and ready');
+} catch (error) {
+    console.error('[MINIO] Failed to connect to MinIO:', error.message);
+    console.warn('[MINIO] Document upload features will not be available');
+}
+
+const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
+
+// view engine setup
+app.set('views', path.join(__dirname, 'app/views'));
+app.set('view engine', 'jade');
+
+app.use(logger('dev'));
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+app.use(cookieParser());
+app.use(express.static(path.join(__dirname, 'public')));
+
+app.use('/', indexRouter);
+app.use('/api/v1', apiV1Routes);
+
+// catch 404 and forward to error handler
+app.use(function(req, res, next) {
+  next(createError(404));
+});
+
+// Global error handler middleware
+app.use(errorHandler);
+
+export default app;
