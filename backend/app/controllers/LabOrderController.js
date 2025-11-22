@@ -5,10 +5,6 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 import Logger from '../logs/Logger.js';
 
 class LabOrderController extends BaseController {
-    /**
-     * @route POST /api/v1/lab-orders
-     * @access Doctor
-     */
     async createLabOrder(req, res) {
         try {
             const data = {
@@ -35,10 +31,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route PUT /api/v1/lab-orders/:id/tests
-     * @access Doctor, Lab Technician
-     */
     async addTest(req, res) {
         try {
             const { id } = req.params;
@@ -62,10 +54,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getAllLabOrders(req, res) {
         try {
             const { 
@@ -112,10 +100,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/:id
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getLabOrderById(req, res) {
         try {
             const { id } = req.params;
@@ -139,10 +123,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/order-number/:orderNumber
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getLabOrderByOrderNumber(req, res) {
         try {
             const { orderNumber } = req.params;
@@ -166,10 +146,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/patient/:patientId
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getLabOrdersByPatient(req, res) {
         try {
             const { patientId } = req.params;
@@ -197,10 +173,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route PATCH /api/v1/lab-orders/:id/status
-     * @access Doctor, Lab Technician
-     */
     async updateLabOrderStatus(req, res) {
         try {
             const { id } = req.params;
@@ -226,10 +198,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route PATCH /api/v1/lab-orders/:id/tests/:testId/status
-     * @access Lab Technician
-     */
     async updateTestStatus(req, res) {
         try {
             const { id, testId } = req.params;
@@ -262,10 +230,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route PUT /api/v1/lab-orders/:id/tests/:testId/results
-     * @access Lab Technician
-     */
     async addTestResults(req, res) {
         try {
             const { id, testId } = req.params;
@@ -290,10 +254,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/:id/results
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getLabResults(req, res) {
         try {
             const { id } = req.params;
@@ -317,10 +277,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route DELETE /api/v1/lab-orders/:id/cancel
-     * @access Doctor
-     */
     async cancelLabOrder(req, res) {
         try {
             const { id } = req.params;
@@ -346,10 +302,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/statistics
-     * @access Doctor, Lab Technician, Admin
-     */
     async getStatistics(req, res) {
         try {
             const { doctorId, laboratoryId, startDate, endDate } = req.query;
@@ -379,10 +331,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route POST /api/v1/lab-orders/:id/upload-results
-     * @access Lab Technician
-     */
     async uploadLabResultsJSON(req, res) {
         try {
             const { id } = req.params;
@@ -418,10 +366,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route POST /api/v1/lab-orders/:id/upload-report
-     * @access Lab Technician
-     */
     async uploadLabReportPDF(req, res) {
         try {
             const { id } = req.params;
@@ -475,10 +419,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route POST /api/v1/lab-orders/:id/validate
-     * @access Lab Technician
-     */
     async validateLabOrder(req, res) {
         try {
             const { id } = req.params;
@@ -509,10 +449,6 @@ class LabOrderController extends BaseController {
         }
     }
 
-    /**
-     * @route GET /api/v1/lab-orders/:id/result-history
-     * @access Doctor, Lab Technician, Nurse
-     */
     async getResultHistory(req, res) {
         try {
             const { id } = req.params;

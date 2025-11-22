@@ -2,11 +2,13 @@ version: '3'
 
 services:
   app:
-    build: .
+    build:
+      context: ..
+      dockerfile: Docker/Dockerfile
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://host.docker.internal:27018/healthpulse
+      - MONGODB_URI=mongodb://mongodb:27017/healthpulse
       - NODE_ENV=production
       - MINIO_ENDPOINT=minio
       - MINIO_PORT=9000
@@ -14,10 +16,23 @@ services:
       - MINIO_SECRET_KEY=minioadmin
       - MINIO_USE_SSL=false
       - MINIO_BUCKET=healthpulse
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     depends_on:
+      - mongodb
       - minio
+
+  mongodb:
+    image: mongo:7
+    ports:
+      - "27018:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=healthpulse
+    volumes:
+      - mongodb_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   minio:
     image: minio/minio:latest
@@ -36,5 +51,8 @@ services:
       timeout: 20s
       retries: 3
 
+
+
 volumes:
+  mongodb_data:
   minio_data:
