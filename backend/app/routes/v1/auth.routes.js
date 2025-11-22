@@ -12,5 +12,6 @@ router.post('/register', (req, res) => authController.register(req, res));
 router.post('/login', (req, res) => authController.login(req, res));
 router.post('/refresh', (req, res) => authController.refreshToken(req, res));
 router.post('/logout', authenticate, (req, res) => authController.logout(req, res));
+router.get('/me', authenticate, (req, res) => authController.getCurrentUser(req, res));
 
 export default router;

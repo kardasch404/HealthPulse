@@ -117,6 +117,29 @@ class AuthController extends BaseController
             });
         }
     }
+
+    async getCurrentUser (req, res)
+    {
+        try{
+            const userId = req.user?.userId;
+            if (!userId)
+            {
+                return this.handleError(res, { message: 'Unauthorized' });
+            }
+
+            const user = await this.#authService.getUserById(userId);
+            return this.handleSuccess(res, {
+                 message: 'User fetched',
+                 data: user
+                });
+
+        }catch (error){
+            Logger.error('Error fetching current user', error);
+            return this.handleError(res, { 
+                message: 'Internal Server Error' 
+            });
+        }
+    }
 }
 
 export default AuthController;

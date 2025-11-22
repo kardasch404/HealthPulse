@@ -4,16 +4,14 @@ import type { LoginCredentials, RegisterData, AuthTokens, User, ApiResponse } fr
 
 export const authService = {
   login: async (credentials: LoginCredentials): Promise<{ tokens: AuthTokens; user: User }> => {
-    const response = await axiosInstance.post<ApiResponse<{ accessToken: string; refreshToken: string; user: User }>>(
+    const response = await axiosInstance.post<ApiResponse<{ data: { user: any; tokens: AuthTokens } }>>(
       API_ENDPOINTS.AUTH.LOGIN,
       credentials
     );
+    const loginData = response.data.data!.data;
     return {
-      tokens: {
-        accessToken: response.data.data!.accessToken,
-        refreshToken: response.data.data!.refreshToken,
-      },
-      user: response.data.data!.user,
+      tokens: loginData.tokens,
+      user: loginData.user,
     };
   },
 

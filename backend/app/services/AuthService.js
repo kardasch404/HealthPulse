@@ -85,11 +85,18 @@ class AuthService {
 
             return {
                 user: {
-                    id: user._id,
+                    _id: user._id,
                     email: user.email,
                     fname: user.fname,
                     lname: user.lname,
-                    role: user.roleId.name
+                    phone: user.phone,
+                    roleId: {
+                        _id: user.roleId._id,
+                        name: user.roleId.name,
+                        permissions: user.roleId.permissions
+                    },
+                    isActive: user.isActive,
+                    lastLogin: user.lastLogin
                 },
                 tokens: {
                     accessToken,
@@ -173,12 +180,16 @@ class AuthService {
             }
 
             return {
-                id: user._id,
+                _id: user._id,
                 email: user.email,
                 fname: user.fname,
                 lname: user.lname,
                 phone: user.phone,
-                role: user.roleId.name,
+                roleId: {
+                    _id: user.roleId._id,
+                    name: user.roleId.name,
+                    permissions: user.roleId.permissions
+                },
                 isActive: user.isActive,
                 lastLogin: user.lastLogin,
                 createdAt: user.createdAt
