@@ -3,6 +3,7 @@ import express from 'express';
 import path from 'path';
 import cookieParser from 'cookie-parser';
 import logger from 'morgan';
+import cors from 'cors';
 import { fileURLToPath } from 'url';
 import { dirname } from 'path';
 
@@ -28,6 +29,12 @@ try {
 }
 
 const app = express();
+
+// CORS configuration
+app.use(cors({
+  origin: 'http://localhost:5173',
+  credentials: true,
+}));
 
 // view engine setup
 app.set('views', path.join(__dirname, 'app/views'));
