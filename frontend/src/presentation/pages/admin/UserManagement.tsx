@@ -21,10 +21,13 @@ type CreateUserForm = z.infer<typeof createUserSchema>;
 
 export const UserManagement = () => {
   const [users, setUsers] = useState<any[]>([]);
+  const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<string>('');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [selectedRole, setSelectedRole] = useState<string>('all');
+  const [statusFilter, setStatusFilter] = useState<string>('all');
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
@@ -35,20 +38,52 @@ export const UserManagement = () => {
     fetchRoles();
   }, []);
 
+  useEffect(() => {
+    let filtered = users;
+
+    if (searchTerm) {
+      filtered = filtered.filter(user => 
+        user.fname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.lname?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        user.phone?.includes(searchTerm)
+      );
+    }
+
+    if (selectedRole !== 'all') {
+      filtered = filtered.filter(user => user.roleId?._id === selectedRole || user.roleId === selectedRole);
+    }
+
+    if (statusFilter !== 'all') {
+      filtered = filtered.filter(user => 
+        statusFilter === 'active' ? user.isActive : !user.isActive
+      );
+    }
+
+    setFilteredUsers(filtered);
+  }, [searchTerm, selectedRole, statusFilter, users]);
+
   const fetchUsers = async () => {
+    setLoading(true);
     try {
       const response = await userService.getAll();
-      setUsers(Array.isArray(response) ? response : []);
+      const usersData = response?.data?.data?.users || [];
+      setUsers(Array.isArray(usersData) ? usersData : []);
+      setFilteredUsers(Array.isArray(usersData) ? usersData : []);
     } catch (error) {
       console.error('Error fetching users:', error);
       setUsers([]);
+      setFilteredUsers([]);
+    } finally {
+      setLoading(false);
     }
   };
 
   const fetchRoles = async () => {
     try {
       const response = await userService.getRoles();
-      setRoles(Array.isArray(response) ? response : []);
+      const rolesData = response?.data?.data || response?.data || response;
+      setRoles(Array.isArray(rolesData) ? rolesData : []);
     } catch (error) {
       console.error('Error fetching roles:', error);
       setRoles([]);
@@ -56,17 +91,16 @@ export const UserManagement = () => {
   };
 
   const onSubmit = async (data: CreateUserForm) => {
-    setLoading(true);
     try {
-      await userService.create(data);
+      const payload = { ...data };
+      if (!payload.phone) delete payload.phone;
+      await userService.create(payload);
       reset();
       setShowCreateForm(false);
       fetchUsers();
       alert('User created successfully!');
     } catch (error: any) {
       alert(error.response?.data?.message || 'Failed to create user');
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -145,7 +179,6 @@ export const UserManagement = () => {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h2 className="text-2xl font-bold text-gray-900">User Management</h2>
@@ -159,7 +192,50 @@ export const UserManagement = () => {
         </Button>
       </div>
 
-      {/* Create User Modal */}
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Search</label>
+              <Input
+                placeholder="Search by name, email, or phone..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Role</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={selectedRole}
+                onChange={(e) => setSelectedRole(e.target.value)}
+              >
+                <option value="all">All Roles</option>
+                {roles.map((role) => (
+                  <option key={role._id} value={role._id}>
+                    {role.name.charAt(0).toUpperCase() + role.name.slice(1).replace('_', ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Filter by Status</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+              >
+                <option value="all">All Status</option>
+                <option value="active">Active</option>
+                <option value="inactive">Inactive</option>
+              </select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       <Modal
         isOpen={showCreateForm}
         onClose={() => {
@@ -170,35 +246,12 @@ export const UserManagement = () => {
       >
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <Input
-              label="First Name"
-              placeholder="John"
-              error={errors.fname?.message}
-              {...register('fname')}
-            />
-            <Input
-              label="Last Name"
-              placeholder="Doe"
-              error={errors.lname?.message}
-              {...register('lname')}
-            />
+            <Input label="First Name" placeholder="John" error={errors.fname?.message} {...register('fname')} />
+            <Input label="Last Name" placeholder="Doe" error={errors.lname?.message} {...register('lname')} />
           </div>
 
-          <Input
-            label="Email"
-            type="email"
-            placeholder="user@example.com"
-            error={errors.email?.message}
-            {...register('email')}
-          />
-
-          <Input
-            label="Phone (Optional)"
-            type="tel"
-            placeholder="+1234567890"
-            error={errors.phone?.message}
-            {...register('phone')}
-          />
+          <Input label="Email" type="email" placeholder="user@example.com" error={errors.email?.message} {...register('email')} />
+          <Input label="Phone (Optional)" type="tel" placeholder="+1234567890" error={errors.phone?.message} {...register('phone')} />
 
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
@@ -216,82 +269,75 @@ export const UserManagement = () => {
             {errors.roleId && <p className="text-sm text-red-600 mt-1">{errors.roleId.message}</p>}
           </div>
 
-          <Input
-            label="Password"
-            type="password"
-            placeholder="••••••••"
-            error={errors.password?.message}
-            {...register('password')}
-          />
+          <Input label="Password" type="password" placeholder="••••••••" error={errors.password?.message} {...register('password')} />
 
           <div className="flex justify-end space-x-3 pt-4">
-            <Button type="button" variant="outline" onClick={() => {
-              setShowCreateForm(false);
-              reset();
-            }}>
+            <Button type="button" variant="outline" onClick={() => { setShowCreateForm(false); reset(); }}>
               Cancel
             </Button>
-            <Button type="submit" isLoading={loading}>
-              Create User
+            <Button type="submit" disabled={loading}>
+              {loading ? 'Creating...' : 'Create User'}
             </Button>
           </div>
         </form>
       </Modal>
 
-      {/* Users List */}
       <Card>
-        <CardHeader className="border-b">
-          <CardTitle>All Users ({users.length})</CardTitle>
+        <CardHeader>
+          <CardTitle>All Users ({filteredUsers.length})</CardTitle>
         </CardHeader>
-        <CardContent className="pt-6">
-          <div className="space-y-3">
-            {users.map((user) => (
-              <div
-                key={user._id}
-                className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-              >
-                <div className="flex items-center space-x-4">
-                  <div className="h-12 w-12 rounded-full bg-gradient-to-br from-primary to-primary-dark flex items-center justify-center text-white font-semibold">
-                    {user.fname?.[0]}{user.lname?.[0]}
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{user.fname} {user.lname}</p>
-                    <p className="text-sm text-gray-500">{user.email}</p>
+        <CardContent>
+          {loading ? (
+            <div className="text-center py-8 text-gray-500">Loading users...</div>
+          ) : filteredUsers.length === 0 ? (
+            <div className="text-center py-8 text-gray-500">No users found</div>
+          ) : (
+            <div className="space-y-3">
+              {filteredUsers.map((user) => (
+                <div key={user._id} className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50">
+                  <div className="flex items-center space-x-4">
+                    <div className="flex-shrink-0">
+                      <div className={`h-12 w-12 rounded-full flex items-center justify-center ${
+                        user.isActive ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {getRoleIcon(user.roleId?.name || 'patient')}
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-semibold text-gray-900">
+                        {user.fname} {user.lname}
+                      </h4>
+                      <p className="text-sm text-gray-600">{user.email}</p>
+                      <div className="flex items-center space-x-2 mt-1">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                          {user.roleId?.name?.replace('_', ' ').toUpperCase() || 'N/A'}
+                        </span>
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                          user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
+                        }`}>
+                          {user.isActive ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-gray-500">{getRoleIcon(user.roleId?.name)}</span>
-                    <span className="text-sm capitalize text-gray-600">{user.roleId?.name?.replace('_', ' ')}</span>
+                    {user.isActive ? (
+                      <Button variant="outline" size="sm" onClick={() => handleSuspend(user._id)}>
+                        Suspend
+                      </Button>
+                    ) : (
+                      <Button variant="outline" size="sm" onClick={() => handleActivate(user._id)}>
+                        Activate
+                      </Button>
+                    )}
+                    <Button variant="outline" size="sm" onClick={() => handleDelete(user._id)} className="text-red-600 hover:text-red-700">
+                      Delete
+                    </Button>
                   </div>
                 </div>
-
-                <div className="flex items-center space-x-2">
-                  <span
-                    className={`px-3 py-1 rounded-full text-xs font-medium ${
-                      user.isActive ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'
-                    }`}
-                  >
-                    {user.isActive ? 'Active' : 'Suspended'}
-                  </span>
-
-                  {user.isActive ? (
-                    <Button size="sm" variant="outline" onClick={() => handleSuspend(user._id)}>
-                      Suspend
-                    </Button>
-                  ) : (
-                    <Button size="sm" variant="outline" onClick={() => handleActivate(user._id)}>
-                      Activate
-                    </Button>
-                  )}
-
-                  <Button size="sm" variant="outline" onClick={() => handleDelete(user._id)}>
-                    <svg className="h-4 w-4 text-red-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                    </svg>
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

@@ -8,7 +8,7 @@ interface SidebarProps {
 
 export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
   const location = useLocation();
-  const { canCreate, canRead, isAdmin } = usePermissions();
+  const { canCreate } = usePermissions();
 
   const menuItems = [
     {
@@ -20,7 +20,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
         </svg>
       ),
     },
-    ...(canCreate('users') ? [{
+    {
       name: 'User Management',
       path: '/dashboard/users',
       icon: (
@@ -28,7 +28,8 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
         </svg>
       ),
-    }] : []),
+      adminOnly: true,
+    },
     {
       name: 'Appointments',
       path: '/dashboard/appointments',
@@ -127,7 +128,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
 
           {/* Navigation */}
           <nav className="flex-1 px-4 py-6 space-y-1 overflow-y-auto">
-            {menuItems.map((item) => {
+            {menuItems.filter(item => !item.adminOnly || canCreate('users')).map((item) => {
               const isActive = location.pathname === item.path;
               return (
                 <Link
