@@ -70,7 +70,7 @@ export const Sidebar = ({ isOpen, onClose }: SidebarProps) => {
       ),
     },
     {
-      name: 'Patients',
+      name: 'My Patients',
       path: '/dashboard/patients',
       icon: (
         <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
