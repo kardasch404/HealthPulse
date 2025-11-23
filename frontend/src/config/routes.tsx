@@ -5,6 +5,7 @@ import { DashboardPage } from '../presentation/pages/DashboardPage';
 import { UserManagement } from '../presentation/pages/admin/UserManagement';
 import { RoleManagement } from '../presentation/pages/admin/RoleManagement';
 import { PharmacyManagement } from '../presentation/pages/admin/PharmacyManagement';
+import { LaboratoryManagement } from '../presentation/pages/admin/LaboratoryManagement';
 import { ProtectedRoute } from '../presentation/components/organisms/ProtectedRoute';
 import { Sidebar } from '../presentation/components/organisms/Sidebar';
 import { useState } from 'react';
@@ -71,6 +72,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <div className="p-6">
             <PharmacyManagement />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/laboratories',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <LaboratoryManagement />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
