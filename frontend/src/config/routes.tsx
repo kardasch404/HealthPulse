@@ -51,6 +51,97 @@ export const router = createBrowserRouter([
     ),
   },
   {
+    path: '/dashboard/appointments',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Appointments</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/patients',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Patients</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/consultations',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Consultations</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/prescriptions',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Prescriptions</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/lab-orders',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Lab Orders</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/documents',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Documents</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/settings',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <h1 className="text-2xl font-bold">Settings</h1>
+            <p className="text-gray-600 mt-2">Coming soon...</p>
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
     path: '*',
     element: <Navigate to="/login" replace />,
   },
