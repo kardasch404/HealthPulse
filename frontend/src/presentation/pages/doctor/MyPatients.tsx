@@ -44,8 +44,6 @@ export const MyPatients = () => {
     resolver: zodResolver(patientSchema),
   });
 
-
-
   useEffect(() => {
     if (searchTerm) {
       const filtered = patients.filter(patient =>
