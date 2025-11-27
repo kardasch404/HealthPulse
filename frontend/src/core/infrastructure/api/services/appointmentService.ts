@@ -20,8 +20,9 @@ export interface UpdateAppointmentData {
 }
 
 export const appointmentService = {
-  getAll: async () => {
-    const response = await axiosInstance.get<ApiResponse>('/termins/my');
+  getAll: async (doctorId?: string) => {
+    const url = doctorId ? `/termins/my?doctorId=${doctorId}` : '/termins/my?days=365';
+    const response = await axiosInstance.get<ApiResponse>(url);
     return response.data;
   },
 
@@ -41,12 +42,12 @@ export const appointmentService = {
   },
 
   complete: async (id: string) => {
-    const response = await axiosInstance.patch<ApiResponse>(`/termins/${id}/complete`);
+    const response = await axiosInstance.put<ApiResponse>(`/termins/${id}/complete`);
     return response.data;
   },
 
   cancel: async (id: string, data: { reason: string }) => {
-    const response = await axiosInstance.patch<ApiResponse>(`/termins/${id}/cancel`, data);
+    const response = await axiosInstance.put<ApiResponse>(`/termins/${id}/cancel`, data);
     return response.data;
   },
 

@@ -45,7 +45,7 @@ export const MyAppointments = () => {
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const response = await appointmentService.getAll();
+      const response = await appointmentService.getAll(user?._id);
       const data = response?.data?.data || response?.data || [];
       setAppointments(Array.isArray(data) ? data : []);
     } catch (error: any) {
@@ -205,7 +205,7 @@ export const MyAppointments = () => {
                       <p className="text-sm text-gray-600">{apt.type}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-xs text-gray-500">
-                          {new Date(apt.appointmentDate).toLocaleDateString()} at {apt.appointmentTime}
+                          {new Date(apt.date).toLocaleDateString()} at {apt.startTime}
                         </span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(apt.status)}`}>
                           {apt.status}
@@ -347,11 +347,11 @@ export const MyAppointments = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Date</h4>
-                <p className="text-base text-gray-900">{new Date(selectedAppointment.appointmentDate).toLocaleDateString()}</p>
+                <p className="text-base text-gray-900">{new Date(selectedAppointment.date).toLocaleDateString()}</p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Time</h4>
-                <p className="text-base text-gray-900">{selectedAppointment.appointmentTime}</p>
+                <p className="text-base text-gray-900">{selectedAppointment.startTime}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">
