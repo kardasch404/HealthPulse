@@ -36,12 +36,12 @@ router.get('/search',
 );
 
 router.get('/', 
-    requireRole([ROLES.ADMIN, ROLES.PHARMACIST]),
+    requireRole([ROLES.ADMIN, ROLES.PHARMACIST, ROLES.DOCTOR]),
     catchAsync((req, res) => pharmacyController.getAllPharmacies(req, res))
 );
 
 router.get('/:id', 
-    requireRole([ROLES.ADMIN, ROLES.PHARMACIST]),
+    requireRole([ROLES.ADMIN, ROLES.PHARMACIST, ROLES.DOCTOR]),
     catchAsync((req, res) => pharmacyController.getPharmacyById(req, res))
 );
 

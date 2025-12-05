@@ -8,6 +8,8 @@ import { PharmacyManagement } from '../presentation/pages/admin/PharmacyManageme
 import { LaboratoryManagement } from '../presentation/pages/admin/LaboratoryManagement';
 import { MyPatients } from '../presentation/pages/doctor/MyPatients';
 import { MyAppointments } from '../presentation/pages/doctor/MyAppointments';
+import { MyConsultations } from '../presentation/pages/doctor/MyConsultations';
+import { MyPrescriptions } from '../presentation/pages/doctor/MyPrescriptions';
 import { ProtectedRoute } from '../presentation/components/organisms/ProtectedRoute';
 import { Sidebar } from '../presentation/components/organisms/Sidebar';
 import { useState } from 'react';
@@ -121,8 +123,7 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <DashboardLayout>
           <div className="p-6">
-            <h1 className="text-2xl font-bold">Consultations</h1>
-            <p className="text-gray-600 mt-2">Coming soon...</p>
+            <MyConsultations />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
@@ -134,8 +135,7 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <DashboardLayout>
           <div className="p-6">
-            <h1 className="text-2xl font-bold">Prescriptions</h1>
-            <p className="text-gray-600 mt-2">Coming soon...</p>
+            <MyPrescriptions />
           </div>
         </DashboardLayout>
       </ProtectedRoute>

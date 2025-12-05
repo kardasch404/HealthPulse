@@ -1,13 +1,16 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 import { appointmentService } from '../../../core/infrastructure/api/services/appointmentService';
 import { patientService } from '../../../core/infrastructure/api/services/patientService';
 import { Button } from '../../components/atoms/Button';
 import { Input } from '../../components/atoms/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/atoms/Card';
 import { Modal } from '../../components/molecules/Modal';
+import { useAuth } from '../../hooks/useAuth';
 
 const appointmentSchema = z.object({
   patientId: z.string().min(1, 'Patient required'),
@@ -21,6 +24,7 @@ const appointmentSchema = z.object({
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
 export const MyAppointments = () => {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<any[]>([]);
   const [patients, setPatients] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -29,7 +33,7 @@ export const MyAppointments = () => {
   const [selectedAppointment, setSelectedAppointment] = useState<any>(null);
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<AppointmentFormData>({
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<AppointmentFormData>({
     resolver: zodResolver(appointmentSchema),
   });
 
@@ -41,11 +45,14 @@ export const MyAppointments = () => {
   const fetchAppointments = async () => {
     setLoading(true);
     try {
-      const response = await appointmentService.getAll();
+      const response = await appointmentService.getAll(user?._id);
       const data = response?.data?.data || response?.data || [];
       setAppointments(Array.isArray(data) ? data : []);
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error fetching appointments:', error);
+      if (error.response?.status === 404) {
+        console.warn('Appointments endpoint not found. Backend route may be missing.');
+      }
       setAppointments([]);
     } finally {
       setLoading(false);
@@ -64,12 +71,26 @@ export const MyAppointments = () => {
 
   const onSubmit = async (data: AppointmentFormData) => {
     try {
-      await appointmentService.create(data);
+      if (!user?._id) {
+        alert('Please login again.');
+        return;
+      }
+      
+      const appointmentPayload = {
+        patientId: data.patientId,
+        doctorId: user._id,
+        date: data.appointmentDate,
+        startTime: data.appointmentTime,
+        type: data.type,
+        notes: data.notes || '',
+      };
+      await appointmentService.create(appointmentPayload);
       reset();
       setShowCreateModal(false);
       fetchAppointments();
       alert('Appointment created successfully!');
     } catch (error: any) {
+      console.error('Create appointment error:', error);
       alert(error.response?.data?.message || 'Failed to create appointment');
     }
   };
@@ -86,9 +107,10 @@ export const MyAppointments = () => {
   };
 
   const handleCancel = async (id: string) => {
-    if (!confirm('Cancel this appointment?')) return;
+    const reason = prompt('Reason for cancellation:');
+    if (!reason) return;
     try {
-      await appointmentService.cancel(id);
+      await appointmentService.cancel(id, { reason });
       fetchAppointments();
       alert('Appointment cancelled');
     } catch (error) {
@@ -183,7 +205,7 @@ export const MyAppointments = () => {
                       <p className="text-sm text-gray-600">{apt.type}</p>
                       <div className="flex items-center space-x-2 mt-1">
                         <span className="text-xs text-gray-500">
-                          {new Date(apt.appointmentDate).toLocaleDateString()} at {apt.appointmentTime}
+                          {new Date(apt.date).toLocaleDateString()} at {apt.startTime}
                         </span>
                         <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getStatusColor(apt.status)}`}>
                           {apt.status}
@@ -227,8 +249,55 @@ export const MyAppointments = () => {
           </div>
 
           <div className="grid grid-cols-2 gap-4">
-            <Input label="Date" type="date" error={errors.appointmentDate?.message} {...register('appointmentDate')} />
-            <Input label="Time" type="time" error={errors.appointmentTime?.message} {...register('appointmentTime')} />
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Date</label>
+              <Controller
+                name="appointmentDate"
+                control={control}
+                render={({ field }) => (
+                  <DatePicker
+                    selected={field.value ? new Date(field.value) : null}
+                    onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
+                    minDate={new Date()}
+                    dateFormat="MMMM d, yyyy"
+                    className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                    placeholderText="Select date"
+                  />
+                )}
+              />
+              {errors.appointmentDate && <p className="text-sm text-red-600 mt-1">{errors.appointmentDate.message}</p>}
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Time</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                {...register('appointmentTime')}
+              >
+                <option value="">Select time</option>
+                <option value="08:00">08:00 AM</option>
+                <option value="08:30">08:30 AM</option>
+                <option value="09:00">09:00 AM</option>
+                <option value="09:30">09:30 AM</option>
+                <option value="10:00">10:00 AM</option>
+                <option value="10:30">10:30 AM</option>
+                <option value="11:00">11:00 AM</option>
+                <option value="11:30">11:30 AM</option>
+                <option value="12:00">12:00 PM</option>
+                <option value="12:30">12:30 PM</option>
+                <option value="13:00">01:00 PM</option>
+                <option value="13:30">01:30 PM</option>
+                <option value="14:00">02:00 PM</option>
+                <option value="14:30">02:30 PM</option>
+                <option value="15:00">03:00 PM</option>
+                <option value="15:30">03:30 PM</option>
+                <option value="16:00">04:00 PM</option>
+                <option value="16:30">04:30 PM</option>
+                <option value="17:00">05:00 PM</option>
+                <option value="17:30">05:30 PM</option>
+                <option value="18:00">06:00 PM</option>
+              </select>
+              {errors.appointmentTime && <p className="text-sm text-red-600 mt-1">{errors.appointmentTime.message}</p>}
+            </div>
           </div>
 
           <div>
@@ -278,11 +347,11 @@ export const MyAppointments = () => {
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Date</h4>
-                <p className="text-base text-gray-900">{new Date(selectedAppointment.appointmentDate).toLocaleDateString()}</p>
+                <p className="text-base text-gray-900">{new Date(selectedAppointment.date).toLocaleDateString()}</p>
               </div>
               <div>
                 <h4 className="text-sm font-medium text-gray-500">Time</h4>
-                <p className="text-base text-gray-900">{selectedAppointment.appointmentTime}</p>
+                <p className="text-base text-gray-900">{selectedAppointment.startTime}</p>
               </div>
             </div>
             <div className="grid grid-cols-2 gap-4">

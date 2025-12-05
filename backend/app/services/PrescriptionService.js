@@ -225,7 +225,6 @@ class PrescriptionService {
 
             prescription.assignedPharmacyId = pharmacyId;
             prescription.assignedAt = new Date();
-            prescription.status = 'assigned';
             await prescription.save();
 
             Logger.info('Prescription assigned to pharmacy', { prescriptionId, pharmacyId });

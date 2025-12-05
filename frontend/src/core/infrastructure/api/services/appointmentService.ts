@@ -3,10 +3,10 @@ import type { ApiResponse } from '../../../../shared/types';
 
 export interface CreateAppointmentData {
   patientId: string;
-  appointmentDate: string;
-  appointmentTime: string;
+  doctorId: string;
+  date: string;
+  startTime: string;
   type: string;
-  reason?: string;
   notes?: string;
 }
 
@@ -20,38 +20,39 @@ export interface UpdateAppointmentData {
 }
 
 export const appointmentService = {
-  getAll: async () => {
-    const response = await axiosInstance.get<ApiResponse>('/appointments');
+  getAll: async (doctorId?: string) => {
+    const url = doctorId ? `/termins/my?doctorId=${doctorId}` : '/termins/my?days=365';
+    const response = await axiosInstance.get<ApiResponse>(url);
     return response.data;
   },
 
   getById: async (id: string) => {
-    const response = await axiosInstance.get<ApiResponse>(`/appointments/${id}`);
+    const response = await axiosInstance.get<ApiResponse>(`/termins/${id}`);
     return response.data;
   },
 
   create: async (data: CreateAppointmentData) => {
-    const response = await axiosInstance.post<ApiResponse>('/appointments', data);
+    const response = await axiosInstance.post<ApiResponse>('/termins', data);
     return response.data;
   },
 
   update: async (id: string, data: UpdateAppointmentData) => {
-    const response = await axiosInstance.put<ApiResponse>(`/appointments/${id}`, data);
+    const response = await axiosInstance.put<ApiResponse>(`/termins/${id}`, data);
     return response.data;
   },
 
   complete: async (id: string) => {
-    const response = await axiosInstance.patch<ApiResponse>(`/appointments/${id}/complete`);
+    const response = await axiosInstance.put<ApiResponse>(`/termins/${id}/complete`);
     return response.data;
   },
 
-  cancel: async (id: string) => {
-    const response = await axiosInstance.patch<ApiResponse>(`/appointments/${id}/cancel`);
+  cancel: async (id: string, data: { reason: string }) => {
+    const response = await axiosInstance.put<ApiResponse>(`/termins/${id}/cancel`, data);
     return response.data;
   },
 
   checkAvailability: async (date: string) => {
-    const response = await axiosInstance.get<ApiResponse>(`/appointments/availability?date=${date}`);
+    const response = await axiosInstance.get<ApiResponse>(`/termins/availability?date=${date}`);
     return response.data;
   },
 };
