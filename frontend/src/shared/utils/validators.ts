@@ -18,5 +18,56 @@ export const registerSchema = z.object({
   path: ['confirmPassword'],
 });
 
+export const consultationSchema = z.object({
+  terminId: z.string().optional(),
+  patientId: z.string().min(1, 'Patient required'),
+  chiefComplaint: z.string().min(3, 'Chief complaint required'),
+  historyOfPresentIllness: z.string().optional(),
+  symptoms: z.string().optional(),
+  bloodPressure: z.string().optional(),
+  pulse: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  temperature: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  respiratoryRate: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  weight: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  height: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  oxygenSaturation: z.string().optional().refine((val) => !val || Number(val) >= 0, 'Must be positive'),
+  physicalExamination: z.string().optional(),
+  diagnosis: z.string().optional(),
+  treatmentPlan: z.string().optional(),
+  notes: z.string().optional(),
+  followUpDate: z.string().optional(),
+  followUpInstructions: z.string().optional(),
+});
+
+export const medicationSchema = z.object({
+  medicationName: z.string().min(2, 'Medication name required'),
+  genericName: z.string().optional(),
+  dosage: z.string().min(1, 'Dosage required'),
+  dosageForm: z.enum(['tablet', 'capsule', 'syrup', 'injection', 'cream', 'drops', 'inhaler', 'patch']),
+  frequency: z.string().min(1, 'Frequency required'),
+  route: z.enum(['oral', 'topical', 'intravenous', 'intramuscular', 'subcutaneous', 'inhalation', 'rectal', 'sublingual']),
+  durationValue: z.string().refine((val) => Number(val) > 0, 'Duration must be positive'),
+  durationUnit: z.enum(['days', 'weeks', 'months']),
+  quantity: z.string().refine((val) => Number(val) > 0, 'Quantity must be positive'),
+  instructions: z.string().optional(),
+});
+
+export const prescriptionSchema = z.object({
+  consultationId: z.string().optional(),
+  patientId: z.string().min(1, 'Patient required'),
+  medications: z.array(medicationSchema).min(1, 'At least one medication required'),
+  doctorNotes: z.string().optional(),
+  validUntil: z.string().optional(),
+});
+
+export const updatePrescriptionSchema = z.object({
+  notes: z.string().optional(),
+  validUntil: z.string().optional(),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
+export type ConsultationFormData = z.infer<typeof consultationSchema>;
+export type MedicationFormData = z.infer<typeof medicationSchema>;
+export type PrescriptionFormData = z.infer<typeof prescriptionSchema>;
+export type UpdatePrescriptionFormData = z.infer<typeof updatePrescriptionSchema>;
