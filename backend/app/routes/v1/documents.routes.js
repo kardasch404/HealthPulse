@@ -9,60 +9,67 @@ const router = express.Router();
 const documentController = new DocumentController();
 
 router.post(
-    '/',
+    '/upload',
     authenticate,
     checkPermission(PERMISSIONS.MANAGE_MEDICAL_DOCUMENTS),
     upload.single('file'),
-    documentController.uploadDocument.bind(documentController)
+    (req, res) => documentController.uploadDocument(req, res)
+);
+
+router.get(
+    '/',
+    authenticate,
+    checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
+    (req, res) => documentController.getAllDocuments(req, res)
 );
 
 router.get(
     '/patient/:patientId',
     authenticate,
     checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
-    documentController.listPatientDocuments.bind(documentController)
+    (req, res) => documentController.listPatientDocuments(req, res)
 );
 
 router.get(
     '/consultation/:consultationId',
     authenticate,
     checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
-    documentController.getConsultationDocuments.bind(documentController)
+    (req, res) => documentController.getConsultationDocuments(req, res)
 );
 
 router.get(
     '/lab-order/:labOrderId',
     authenticate,
     checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
-    documentController.getLabOrderDocuments.bind(documentController)
+    (req, res) => documentController.getLabOrderDocuments(req, res)
 );
 
 router.get(
     '/:id',
     authenticate,
     checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
-    documentController.getDocumentById.bind(documentController)
+    (req, res) => documentController.getDocumentById(req, res)
 );
 
 router.get(
     '/:id/download',
     authenticate,
     checkPermission(PERMISSIONS.VIEW_MEDICAL_DOCUMENTS),
-    documentController.downloadDocument.bind(documentController)
+    (req, res) => documentController.downloadDocument(req, res)
 );
 
 router.put(
     '/:id',
     authenticate,
     checkPermission(PERMISSIONS.MANAGE_MEDICAL_DOCUMENTS),
-    documentController.updateDocument.bind(documentController)
+    (req, res) => documentController.updateDocument(req, res)
 );
 
 router.delete(
     '/:id',
     authenticate,
     checkPermission(PERMISSIONS.MANAGE_MEDICAL_DOCUMENTS),
-    documentController.deleteDocument.bind(documentController)
+    (req, res) => documentController.deleteDocument(req, res)
 );
 
 export default router;

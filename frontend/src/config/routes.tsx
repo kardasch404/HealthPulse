@@ -11,6 +11,7 @@ import { MyAppointments } from '../presentation/pages/doctor/MyAppointments';
 import { MyConsultations } from '../presentation/pages/doctor/MyConsultations';
 import { MyPrescriptions } from '../presentation/pages/doctor/MyPrescriptions';
 import { MyLabOrders } from '../presentation/pages/doctor/MyLabOrders';
+import { MyDocuments } from '../presentation/pages/doctor/MyDocuments';
 import { ProtectedRoute } from '../presentation/components/organisms/ProtectedRoute';
 import { Sidebar } from '../presentation/components/organisms/Sidebar';
 import { useState } from 'react';
@@ -160,8 +161,7 @@ export const router = createBrowserRouter([
       <ProtectedRoute>
         <DashboardLayout>
           <div className="p-6">
-            <h1 className="text-2xl font-bold">Documents</h1>
-            <p className="text-gray-600 mt-2">Coming soon...</p>
+            <MyDocuments />
           </div>
         </DashboardLayout>
       </ProtectedRoute>

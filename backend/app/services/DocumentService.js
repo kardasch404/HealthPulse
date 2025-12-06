@@ -5,6 +5,66 @@ import path from 'path';
 import { v4 as uuidv4 } from 'uuid';
 
 class DocumentService {
+    static async getAllDocuments(filters = {}, userId) {
+        try {
+            const query = { status: { $ne: 'deleted' } };
+            
+            if (filters.patientId) {
+                query.patientId = filters.patientId;
+            }
+            if (filters.documentType) {
+                query.documentType = filters.documentType;
+            }
+            if (filters.category) {
+                query.category = filters.category;
+            }
+            if (filters.fromDate) {
+                query.documentDate = { $gte: new Date(filters.fromDate) };
+            }
+            if (filters.toDate) {
+                query.documentDate = { 
+                    ...query.documentDate,
+                    $lte: new Date(filters.toDate) 
+                };
+            }
+            
+            const page = parseInt(filters.page) || 1;
+            const limit = parseInt(filters.limit) || 20;
+            const skip = (page - 1) * limit;
+            
+            const documents = await MedicalDocument.find(query)
+                .populate('patientId', 'fname lname email')
+                .populate('uploadedBy', 'fname lname role')
+                .populate('consultationId', 'chiefComplaint')
+                .populate('labOrderId', 'orderNumber')
+                .populate('prescriptionId', 'orderNumber')
+                .sort({ createdAt: -1 })
+                .skip(skip)
+                .limit(limit);
+            
+            const total = await MedicalDocument.countDocuments(query);
+            
+            return {
+                success: true,
+                data: {
+                    documents,
+                    pagination: {
+                        total,
+                        page,
+                        pages: Math.ceil(total / limit),
+                        limit
+                    }
+                }
+            };
+        } catch (error) {
+            Logger.error('Error getting all documents', error);
+            return {
+                success: false,
+                message: error.message || 'Failed to retrieve documents'
+            };
+        }
+    }
+
     static async uploadDocument(fileData, metadata, uploadedBy) {
         try {
             const { buffer, originalname, mimetype, size } = fileData;

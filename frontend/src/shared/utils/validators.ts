@@ -96,3 +96,23 @@ export type PrescriptionFormData = z.infer<typeof prescriptionSchema>;
 export type UpdatePrescriptionFormData = z.infer<typeof updatePrescriptionSchema>;
 export type TestFormData = z.infer<typeof testSchema>;
 export type LabOrderFormData = z.infer<typeof labOrderSchema>;
+
+// Document schemas
+export const documentSchema = z.object({
+  patientId: z.string().min(1, 'Patient is required'),
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  documentType: z.enum(['lab_report', 'prescription', 'consultation_note', 'imaging_scan', 'discharge_summary', 'medical_certificate', 'referral_letter', 'insurance_claim', 'consent_form', 'other']),
+  category: z.enum(['diagnostic', 'treatment', 'administrative', 'legal', 'clinical', 'radiology', 'laboratory', 'pharmacy', 'other']),
+  file: z.any().optional(),
+});
+
+export const updateDocumentSchema = z.object({
+  title: z.string().min(1, 'Title is required'),
+  description: z.string().optional(),
+  documentType: z.enum(['lab_report', 'prescription', 'consultation_note', 'imaging_scan', 'discharge_summary', 'medical_certificate', 'referral_letter', 'insurance_claim', 'consent_form', 'other']),
+  category: z.enum(['diagnostic', 'treatment', 'administrative', 'legal', 'clinical', 'radiology', 'laboratory', 'pharmacy', 'other']),
+});
+
+export type DocumentFormData = z.infer<typeof documentSchema>;
+export type UpdateDocumentFormData = z.infer<typeof updateDocumentSchema>;
