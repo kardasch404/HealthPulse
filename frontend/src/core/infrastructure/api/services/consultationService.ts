@@ -61,6 +61,11 @@ export const consultationService = {
     return response.data;
   },
 
+  getPatientConsultations: async (patientId: string) => {
+    const response = await axiosInstance.get<ApiResponse>(`/consultations?patientId=${patientId}`);
+    return response.data;
+  },
+
   create: async (data: CreateConsultationData) => {
     const response = await axiosInstance.post<ApiResponse>('/consultations', data);
     return response.data;

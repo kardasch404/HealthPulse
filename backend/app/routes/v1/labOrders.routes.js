@@ -27,6 +27,15 @@ router.put(
 );
 
 router.get(
+    '/my',
+    checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
+    (req, res) => {
+        req.query.doctorId = req.user.userId;
+        return labOrderController.getAllLabOrders(req, res);
+    }
+);
+
+router.get(
     '/',
     checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
     (req, res) => labOrderController.getAllLabOrders(req, res)
@@ -101,6 +110,12 @@ router.get(
     '/:id/result-history',
     checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
     (req, res) => labOrderController.getResultHistory(req, res)
+);
+
+router.get(
+    '/:id/report',
+    checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
+    (req, res) => labOrderController.downloadLabReport(req, res)
 );
 
 export default router;
