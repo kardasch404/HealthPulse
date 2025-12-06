@@ -65,9 +65,34 @@ export const updatePrescriptionSchema = z.object({
   validUntil: z.string().optional(),
 });
 
+export const testSchema = z.object({
+  name: z.string().min(2, 'Test name required'),
+  code: z.string().min(1, 'Test code required'),
+  category: z.enum(['Hematology', 'Chemistry', 'Microbiology', 'Immunology', 'Endocrinology', 'Cardiology', 'Other']),
+  urgency: z.enum(['routine', 'urgent', 'stat']),
+  instructions: z.string().optional(),
+  expectedTurnaround: z.string().refine((val) => Number(val) > 0, 'Must be positive'),
+});
+
+export const labOrderSchema = z.object({
+  consultationId: z.string().optional(),
+  patientId: z.string().min(1, 'Patient required'),
+  laboratoryId: z.string().min(1, 'Laboratory required'),
+  tests: z.array(testSchema).min(1, 'At least one test required'),
+  clinicalIndication: z.string().min(3, 'Clinical indication required'),
+  urgency: z.enum(['routine', 'urgent', 'stat']),
+  notes: z.string().optional(),
+  fastingRequired: z.boolean().optional(),
+  scheduledDate: z.string().optional(),
+  scheduledTime: z.string().optional(),
+  specialInstructions: z.string().optional(),
+});
+
 export type LoginFormData = z.infer<typeof loginSchema>;
 export type RegisterFormData = z.infer<typeof registerSchema>;
 export type ConsultationFormData = z.infer<typeof consultationSchema>;
 export type MedicationFormData = z.infer<typeof medicationSchema>;
 export type PrescriptionFormData = z.infer<typeof prescriptionSchema>;
 export type UpdatePrescriptionFormData = z.infer<typeof updatePrescriptionSchema>;
+export type TestFormData = z.infer<typeof testSchema>;
+export type LabOrderFormData = z.infer<typeof labOrderSchema>;

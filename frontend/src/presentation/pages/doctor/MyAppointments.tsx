@@ -217,6 +217,7 @@ export const MyAppointments = () => {
                     <Button variant="outline" size="sm" onClick={() => viewDetails(apt)}>Details</Button>
                     {apt.status === 'scheduled' && (
                       <>
+                        <Button variant="outline" size="sm" onClick={() => window.location.href = `/dashboard/consultations?appointmentId=${apt._id}&patientId=${apt.patientId._id}`}>Consult</Button>
                         <Button variant="outline" size="sm" onClick={() => handleComplete(apt._id)}>Complete</Button>
                         <Button variant="outline" size="sm" onClick={() => handleCancel(apt._id)} className="text-red-600">Cancel</Button>
                       </>
@@ -258,7 +259,7 @@ export const MyAppointments = () => {
                   <DatePicker
                     selected={field.value ? new Date(field.value) : null}
                     onChange={(date) => field.onChange(date ? date.toISOString().split('T')[0] : '')}
-                    minDate={new Date()}
+                    minDate={new Date(Date.now() + 86400000)}
                     dateFormat="MMMM d, yyyy"
                     className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
                     placeholderText="Select date"

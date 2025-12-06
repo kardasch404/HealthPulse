@@ -486,6 +486,30 @@ class LabOrderController extends BaseController {
             return this.handleError(res, error);
         }
     }
+
+    async downloadLabReport(req, res) {
+        try {
+            const { id } = req.params;
+
+            const result = await LabOrderService.getLabOrderById(id);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.NOT_FOUND
+                });
+            }
+
+            // Return proper error response
+            return this.handleError(res, {
+                message: 'Lab report not available yet',
+                statusCode: HTTP_STATUS.NOT_FOUND
+            });
+        } catch (error) {
+            Logger.error('Error in downloadLabReport controller', error);
+            return this.handleError(res, error);
+        }
+    }
 }
 
 export default LabOrderController;
