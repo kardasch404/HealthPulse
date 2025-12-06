@@ -4,6 +4,37 @@ import { HTTP_STATUS } from '../constants/statusCodes.js';
 import Logger from '../logs/Logger.js';
 
 class DocumentController extends BaseController {
+    async getAllDocuments(req, res) {
+        try {
+            const filters = {
+                patientId: req.query.patientId,
+                documentType: req.query.documentType,
+                category: req.query.category,
+                fromDate: req.query.fromDate,
+                toDate: req.query.toDate,
+                page: req.query.page || 1,
+                limit: req.query.limit || 10
+            };
+            
+            const result = await DocumentService.getAllDocuments(filters, req.user.userId);
+            
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+            
+            return this.handleSuccess(res, {
+                message: 'Documents retrieved successfully',
+                data: result.data
+            });
+        } catch (error) {
+            Logger.error('Error in getAllDocuments controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
     async uploadDocument(req, res) {
         try {
             if (!req.file) {
