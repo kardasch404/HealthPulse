@@ -30,6 +30,18 @@ router.get('/me',
     catchAsync((req, res) => userController.getCurrentUser(req, res))
 );
 
+router.get('/profile', 
+    catchAsync((req, res) => userController.getCurrentUser(req, res))
+);
+
+router.put('/profile', 
+    catchAsync((req, res) => userController.updateCurrentUser(req, res))
+);
+
+router.patch('/change-password', 
+    catchAsync((req, res) => userController.changePassword(req, res))
+);
+
 router.put('/me', 
     catchAsync((req, res) => userController.updateCurrentUser(req, res))
 );

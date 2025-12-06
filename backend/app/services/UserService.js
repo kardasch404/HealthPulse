@@ -195,6 +195,33 @@ class UserService {
             throw error;
         }
     }
+
+    async changePassword(userId, currentPassword, newPassword) {
+        try {
+            const user = await User.findById(userId);
+            if (!user) {
+                throw new Error('User not found');
+            }
+
+            const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password);
+            if (!isCurrentPasswordValid) {
+                throw new Error('Current password is incorrect');
+            }
+
+            const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+            user.password = hashedNewPassword;
+            await user.save();
+
+            Logger.info('Password changed successfully', {
+                userId: user._id
+            });
+
+            return true;
+        } catch (error) {
+            Logger.error('Error changing password', error);
+            throw error;
+        }
+    }
 }
 
 export default UserService;

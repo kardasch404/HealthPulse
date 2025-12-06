@@ -109,7 +109,7 @@ class UserController extends BaseController {
     async updateCurrentUser(req, res) {
         const userId = req.user.userId; // From JWT token
         
-        const allowedFields = ['fname', 'lname', 'phone'];
+        const allowedFields = ['fname', 'lname', 'phone', 'email'];
         const updateData = {};
         
         for (const field of allowedFields) {
@@ -124,6 +124,31 @@ class UserController extends BaseController {
         return this.handleSuccess(res, {
             message: 'Profile updated successfully',
             data: user
+        });
+    }
+
+    async changePassword(req, res) {
+        const userId = req.user.userId;
+        const { currentPassword, newPassword } = req.body;
+
+        if (!currentPassword || !newPassword) {
+            return this.handleError(res, {
+                message: 'Current password and new password are required',
+                statusCode: HTTP_STATUS.BAD_REQUEST
+            });
+        }
+
+        if (newPassword.length < 6) {
+            return this.handleError(res, {
+                message: 'New password must be at least 6 characters long',
+                statusCode: HTTP_STATUS.BAD_REQUEST
+            });
+        }
+
+        await this.userService.changePassword(userId, currentPassword, newPassword);
+
+        return this.handleSuccess(res, {
+            message: 'Password changed successfully'
         });
     }
 }
