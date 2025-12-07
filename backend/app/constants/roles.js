@@ -22,6 +22,7 @@ export const PERMISSIONS = {
     VIEW_CONSULTATIONS: 'view_consultations',
     MANAGE_PRESCRIPTIONS: 'manage_prescriptions',
     VIEW_PRESCRIPTIONS: 'view_prescriptions',
+    DISPENSE_PRESCRIPTIONS: 'dispense_prescriptions',
     MANAGE_LAB_ORDERS: 'manage_lab_orders',
     VIEW_LAB_ORDERS: 'view_lab_orders',
     PROCESS_LAB_ORDERS: 'process_lab_orders',
@@ -89,7 +90,8 @@ export const ROLE_PERMISSIONS = {
     [ROLES.PHARMACIST]: [
         PERMISSIONS.VIEW_PHARMACIES,
         PERMISSIONS.VIEW_PATIENTS, 
-        PERMISSIONS.VIEW_PRESCRIPTIONS
+        PERMISSIONS.VIEW_PRESCRIPTIONS,
+        PERMISSIONS.DISPENSE_PRESCRIPTIONS
     ],
     [ROLES.LAB_TECHNICIAN]: [
         PERMISSIONS.VIEW_LABORATORIES,

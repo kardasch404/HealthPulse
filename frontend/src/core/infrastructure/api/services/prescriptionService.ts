@@ -1,22 +1,28 @@
 import { axiosInstance } from '../axiosInstance';
 
 export const prescriptionService = {
-  create: (data: any) => axiosInstance.post('/prescriptions', data),
-  
+  // Get all prescriptions (for current user based on role)
   getAll: () => axiosInstance.get('/prescriptions'),
   
+  // Get my prescriptions
+  getMyPrescriptions: () => axiosInstance.get('/prescriptions/my-prescriptions'),
+  
+  // Get prescription by ID
   getById: (id: string) => axiosInstance.get(`/prescriptions/${id}`),
   
-  update: (id: string, data: any) => axiosInstance.put(`/prescriptions/${id}`, data),
+  // Get prescriptions for a specific pharmacy
+  getPharmacyPrescriptions: (pharmacyId: string, status?: string) => {
+    const params = status ? { status } : {};
+    return axiosInstance.get(`/prescriptions/pharmacy/${pharmacyId}`, { params });
+  },
   
-  addMedication: (id: string, medication: any) => 
-    axiosInstance.put(`/prescriptions/${id}/medications`, medication),
+  // Update prescription status (for pharmacist)
+  updateStatus: (id: string, status: string) => 
+    axiosInstance.patch(`/prescriptions/${id}/status`, { status }),
   
-  sign: (id: string) => axiosInstance.put(`/prescriptions/${id}/sign`, {}),
+  // Get prescription status
+  getStatus: (id: string) => axiosInstance.get(`/prescriptions/${id}/status`),
   
-  assignPharmacy: (id: string, pharmacyId: string) => 
-    axiosInstance.patch(`/prescriptions/${id}/assign-pharmacy`, { pharmacyId }),
-  
-  cancel: (id: string, reason: string) => 
-    axiosInstance.patch(`/prescriptions/${id}/cancel`, { reason }),
+  // Get dispensing history
+  getDispensingHistory: () => axiosInstance.get('/prescriptions/dispensing-history'),
 };

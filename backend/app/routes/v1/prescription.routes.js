@@ -29,6 +29,12 @@ router.get(
 );
 
 router.get(
+    '/dispensing-history',
+    checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
+    (req, res) => prescriptionController.getDispensingHistory(req, res)
+);
+
+router.get(
     '/:id',
     checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
     (req, res) => prescriptionController.getPrescriptionById(req, res)
@@ -68,6 +74,19 @@ router.patch(
     '/:id/cancel',
     checkPermission(PERMISSIONS.MANAGE_PRESCRIPTIONS),
     (req, res) => prescriptionController.cancelPrescription(req, res)
+);
+
+// Pharmacist routes
+router.patch(
+    '/:id/status',
+    checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
+    (req, res) => prescriptionController.updatePrescriptionStatus(req, res)
+);
+
+router.get(
+    '/pharmacy/:pharmacyId',
+    checkPermission(PERMISSIONS.VIEW_PRESCRIPTIONS),
+    (req, res) => prescriptionController.getPharmacyPrescriptions(req, res)
 );
 
 export default router;

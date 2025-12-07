@@ -235,9 +235,9 @@ class PrescriptionService {
         }
     }
 
-    static async updateStatus(prescriptionId, status) {
+    static async updateStatus(prescriptionId, status, pharmacistId = null) {
         try {
-            const validStatuses = ['draft', 'pending', 'assigned', 'in-preparation', 'ready', 'dispensed', 'cancelled'];
+            const validStatuses = ['draft', 'active', 'pending', 'assigned', 'in_preparation', 'ready_for_pickup', 'dispensed', 'cancelled', 'unavailable'];
             if (!validStatuses.includes(status)) {
                 return { success: false, message: 'Invalid status' };
             }
@@ -248,9 +248,19 @@ class PrescriptionService {
             }
 
             prescription.status = status;
-            if (status === 'dispensed') {
-                prescription.dispensedAt = new Date();
+            
+            if (status === 'dispensed' && pharmacistId) {
+                const User = (await import('../models/User.js')).default;
+                const pharmacist = await User.findById(pharmacistId);
+                
+                prescription.dispensedBy = {
+                    pharmacyId: prescription.assignedPharmacyId,
+                    pharmacistName: pharmacist ? `${pharmacist.fname} ${pharmacist.lname}` : 'Unknown',
+                    dispensedAt: new Date(),
+                    notes: 'Dispensed successfully'
+                };
             }
+            
             await prescription.save();
 
             Logger.info('Prescription status updated', { prescriptionId, status });
@@ -298,6 +308,49 @@ class PrescriptionService {
         } catch (error) {
             Logger.error('Error getting pharmacy prescriptions', error);
             throw error;
+        }
+    }
+
+    static async getDispensingHistory(pharmacyId) {
+        try {
+            console.log('Getting dispensing history for pharmacy:', pharmacyId);
+            
+            const prescriptions = await Prescription.find({
+                assignedPharmacyId: pharmacyId,
+                status: 'dispensed'
+            })
+                .populate('patientId', 'fname lname')
+                .populate('doctorId', 'fname lname')
+                .sort({ 'dispensedBy.dispensedAt': -1 });
+
+            console.log('Found dispensed prescriptions:', prescriptions.length);
+            prescriptions.forEach(p => {
+                console.log(`- ${p.prescriptionNumber}: ${p.status} (pharmacy: ${p.assignedPharmacyId})`);
+            });
+
+            return { success: true, data: prescriptions };
+        } catch (error) {
+            Logger.error('Error getting dispensing history', error);
+            throw error;
+        }
+    }
+
+    static async getAllDispensedPrescriptions() {
+        try {
+            const prescriptions = await Prescription.find({ status: 'dispensed' })
+                .populate('patientId', 'fname lname')
+                .populate('doctorId', 'fname lname')
+                .lean();
+            
+            console.log('All dispensed prescriptions in database:', prescriptions.length);
+            prescriptions.forEach(p => {
+                console.log(`- ${p.prescriptionNumber}: pharmacy=${p.assignedPharmacyId}`);
+            });
+            
+            return prescriptions;
+        } catch (error) {
+            console.error('Error getting all dispensed prescriptions:', error);
+            return [];
         }
     }
 }

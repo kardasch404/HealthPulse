@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
-import { useForm } from 'react-hook-form';
+import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { userService } from '../../../core/infrastructure/api/services/userService';
+import { pharmacyService } from '../../../core/infrastructure/api/services/pharmacyService';
+import { laboratoryService } from '../../../core/infrastructure/api/services/laboratoryService';
 import { Button } from '../../components/atoms/Button';
 import { Input } from '../../components/atoms/Input';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/atoms/Card';
@@ -15,6 +17,8 @@ const createUserSchema = z.object({
   lname: z.string().min(2, 'Last name required'),
   phone: z.string().optional(),
   roleId: z.string().min(1, 'Role is required'),
+  pharmacyId: z.string().optional(),
+  laboratoryId: z.string().optional(),
 });
 
 type CreateUserForm = z.infer<typeof createUserSchema>;
@@ -23,19 +27,25 @@ export const UserManagement = () => {
   const [users, setUsers] = useState<any[]>([]);
   const [filteredUsers, setFilteredUsers] = useState<any[]>([]);
   const [roles, setRoles] = useState<any[]>([]);
+  const [pharmacies, setPharmacies] = useState<any[]>([]);
+  const [laboratories, setLaboratories] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRole, setSelectedRole] = useState<string>('all');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const { register, handleSubmit, formState: { errors }, reset } = useForm<CreateUserForm>({
+  const { register, handleSubmit, formState: { errors }, reset, control } = useForm<CreateUserForm>({
     resolver: zodResolver(createUserSchema),
   });
+
+  const watchedRoleId = useWatch({ control, name: 'roleId' });
 
   useEffect(() => {
     fetchUsers();
     fetchRoles();
+    fetchPharmacies();
+    fetchLaboratories();
   }, []);
 
   useEffect(() => {
@@ -90,10 +100,34 @@ export const UserManagement = () => {
     }
   };
 
+  const fetchPharmacies = async () => {
+    try {
+      const response = await pharmacyService.getAll();
+      const pharmaciesData = response?.data?.data || [];
+      setPharmacies(Array.isArray(pharmaciesData) ? pharmaciesData : []);
+    } catch (error) {
+      console.error('Error fetching pharmacies:', error);
+      setPharmacies([]);
+    }
+  };
+
+  const fetchLaboratories = async () => {
+    try {
+      const response = await laboratoryService.getAll();
+      const laboratoriesData = response?.data?.data?.data || [];
+      setLaboratories(Array.isArray(laboratoriesData) ? laboratoriesData : []);
+    } catch (error) {
+      console.error('Error fetching laboratories:', error);
+      setLaboratories([]);
+    }
+  };
+
   const onSubmit = async (data: CreateUserForm) => {
     try {
       const payload = { ...data };
       if (!payload.phone) delete payload.phone;
+      if (!payload.pharmacyId) delete payload.pharmacyId;
+      if (!payload.laboratoryId) delete payload.laboratoryId;
       await userService.create(payload);
       reset();
       setShowCreateForm(false);
@@ -268,6 +302,44 @@ export const UserManagement = () => {
             </select>
             {errors.roleId && <p className="text-sm text-red-600 mt-1">{errors.roleId.message}</p>}
           </div>
+
+          {/* Pharmacy Selection for Pharmacist */}
+          {watchedRoleId && roles.find(r => r._id === watchedRoleId)?.name === 'pharmacist' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Pharmacy</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                {...register('pharmacyId')}
+              >
+                <option value="">Select a pharmacy</option>
+                {pharmacies.map((pharmacy) => (
+                  <option key={pharmacy._id} value={pharmacy._id}>
+                    {pharmacy.name}
+                  </option>
+                ))}
+              </select>
+              {errors.pharmacyId && <p className="text-sm text-red-600 mt-1">{errors.pharmacyId.message}</p>}
+            </div>
+          )}
+
+          {/* Laboratory Selection for Lab Technician */}
+          {watchedRoleId && roles.find(r => r._id === watchedRoleId)?.name === 'lab_technician' && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">Laboratory</label>
+              <select
+                className="flex h-10 w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                {...register('laboratoryId')}
+              >
+                <option value="">Select a laboratory</option>
+                {laboratories.map((laboratory) => (
+                  <option key={laboratory._id} value={laboratory._id}>
+                    {laboratory.name}
+                  </option>
+                ))}
+              </select>
+              {errors.laboratoryId && <p className="text-sm text-red-600 mt-1">{errors.laboratoryId.message}</p>}
+            </div>
+          )}
 
           <Input label="Password" type="password" placeholder="••••••••" error={errors.password?.message} {...register('password')} />
 

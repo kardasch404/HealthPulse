@@ -38,7 +38,9 @@ export const MyProfile = () => {
       
       // Handle different response structures
       let data = {};
-      if (response?.data?.data) {
+      if (response?.data?.data?.data) {
+        data = response.data.data.data;
+      } else if (response?.data?.data) {
         data = response.data.data;
       } else if (response?.data) {
         data = response.data;

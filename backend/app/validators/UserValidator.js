@@ -58,6 +58,18 @@ class UserValidator {
                 .required()
                 .messages({
                     'any.required': 'Role ID is required'
+                }),
+            
+            pharmacyId: Joi.string()
+                .optional()
+                .messages({
+                    'string.base': 'Pharmacy ID must be a string'
+                }),
+            
+            laboratoryId: Joi.string()
+                .optional()
+                .messages({
+                    'string.base': 'Laboratory ID must be a string'
                 })
         });
 
