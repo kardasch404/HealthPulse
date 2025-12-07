@@ -47,24 +47,34 @@ class AuthService {
 
     async login(credentials) {
         try {
+            console.log('=== LOGIN DEBUG ===');
             const { email, password } = credentials;
+            console.log('Login attempt for:', email);
 
             const user = await User.findOne({ email }).populate('roleId');
+            console.log('User found:', !!user);
             if (!user) {
                 throw new Error('Invalid email or password');
             }
 
+            console.log('User isActive:', user.isActive);
             if (!user.isActive) {
                 throw new Error('Account is inactive');
             }
 
+            console.log('Verifying password...');
             const isPasswordValid = await user.verifyPassword(password);
+            console.log('Password valid:', isPasswordValid);
             if (!isPasswordValid) {
                 throw new Error('Invalid email or password');
             }
 
+            console.log('Generating tokens...');
+            console.log('User roleId:', user.roleId);
+            console.log('User roleId.name:', user.roleId?.name);
             const accessToken = JWTUtil.generateAccessToken(user._id.toString(), user.roleId.name);
             const refreshToken = JWTUtil.generateRefreshToken(user._id.toString());
+            console.log('Tokens generated successfully');
 
             const expiresAt = new Date();
             expiresAt.setDate(expiresAt.getDate() + 7);
@@ -104,6 +114,9 @@ class AuthService {
                 }
             };
         } catch (error) {
+            console.error('=== LOGIN ERROR ===');
+            console.error('Error message:', error.message);
+            console.error('Error stack:', error.stack);
             Logger.error(LOG_ACTIONS.LOGIN_FAILED, error);
             throw error;
         }

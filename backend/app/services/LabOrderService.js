@@ -85,7 +85,9 @@ class LabOrderService {
                     .populate('consultationId', 'chiefComplaint diagnosis treatmentPlan')
                     .populate('sampleCollectedBy', 'fname lname')
                     .populate('reportApprovedBy', 'fname lname')
-                    .populate('tests.performedBy', 'fname lname');
+                    .populate('tests.performedBy', 'fname lname')
+                    .populate('uploadedReports.uploadedBy', 'fname lname')
+                    .populate('uploadedResults.uploadedBy', 'fname lname');
             }
 
             const labOrder = await query;
@@ -148,6 +150,8 @@ class LabOrderService {
                     .populate('patientId', 'fname lname dateOfBirth')
                     .populate('doctorId', 'fname lname specialization')
                     .populate('laboratoryId', 'name address phone')
+                    .populate('uploadedReports.uploadedBy', 'fname lname')
+                    .populate('uploadedResults.uploadedBy', 'fname lname')
                     .sort({ createdAt: -1 })
                     .skip(skip)
                     .limit(limit),
@@ -468,6 +472,189 @@ class LabOrderService {
             };
         } catch (error) {
             Logger.error('Error getting lab order statistics', error);
+            throw error;
+        }
+    }
+
+    static async getCompletedOrdersByLaboratory(laboratoryId) {
+        try {
+            const orders = await LabOrder.find({
+                laboratoryId,
+                status: 'completed'
+            })
+                .populate('patientId', 'fname lname')
+                .populate('doctorId', 'fname lname')
+                .sort({ actualCompletionDate: -1 })
+                .limit(50);
+
+            return {
+                success: true,
+                data: orders
+            };
+        } catch (error) {
+            Logger.error('Error getting completed orders by laboratory', error);
+            throw error;
+        }
+    }
+
+    static async uploadLabResultsJSON(labOrderId, resultsData, userId) {
+        try {
+            const labOrder = await LabOrder.findById(labOrderId);
+
+            if (!labOrder) {
+                return { success: false, message: 'Lab order not found' };
+            }
+
+            for (const testResult of resultsData.tests || []) {
+                const test = labOrder.tests.id(testResult.testId);
+                if (test) {
+                    test.results = testResult.results;
+                    test.interpretation = testResult.interpretation;
+                    test.criticalValues = testResult.criticalValues || [];
+                    test.resultNotes = testResult.resultNotes;
+                    test.status = 'completed';
+                    test.completedAt = new Date();
+                    test.performedBy = userId;
+                }
+            }
+
+            if (resultsData.overallResults) {
+                labOrder.overallResults = resultsData.overallResults;
+            }
+
+            // Store JSON results info
+            if (!labOrder.uploadedResults) {
+                labOrder.uploadedResults = [];
+            }
+            
+            labOrder.uploadedResults.push({
+                type: 'json',
+                data: resultsData,
+                uploadedAt: new Date(),
+                uploadedBy: userId
+            });
+
+            await labOrder.save();
+
+            Logger.info('Lab results JSON uploaded', { labOrderId });
+            return {
+                success: true,
+                message: 'Lab results uploaded successfully',
+                data: labOrder
+            };
+        } catch (error) {
+            Logger.error('Error uploading lab results JSON', error);
+            throw error;
+        }
+    }
+
+    static async uploadLabReportPDF(labOrderId, file, metadata, userId) {
+        try {
+            const labOrder = await LabOrder.findById(labOrderId);
+
+            if (!labOrder) {
+                return { success: false, message: 'Lab order not found' };
+            }
+
+            const DocumentService = (await import('./DocumentService.js')).default;
+            
+            const documentMetadata = {
+                patientId: labOrder.patientId,
+                documentType: 'lab_report',
+                title: metadata.title || `Lab Report - ${labOrder.orderNumber}`,
+                description: metadata.description || `Lab report for order ${labOrder.orderNumber}`,
+                labOrderId: labOrderId,
+                category: 'laboratory'
+            };
+
+            const uploadResult = await DocumentService.uploadDocument(
+                file,
+                documentMetadata,
+                userId
+            );
+
+            if (!uploadResult.success) {
+                // Handle storage-specific errors
+                if (uploadResult.message && uploadResult.message.includes('minimum free drive threshold')) {
+                    return {
+                        success: false,
+                        message: 'Storage is full. Please contact system administrator to free up space.',
+                        error: 'STORAGE_FULL'
+                    };
+                }
+                return uploadResult;
+            }
+
+            // Store report info in lab order
+            if (!labOrder.uploadedReports) {
+                labOrder.uploadedReports = [];
+            }
+            
+            labOrder.uploadedReports.push({
+                documentId: uploadResult.data._id,
+                fileName: file.originalname,
+                fileUrl: uploadResult.data.fileUrl,
+                uploadedAt: new Date(),
+                uploadedBy: userId,
+                fileSize: file.size,
+                mimeType: file.mimetype
+            });
+            
+            labOrder.reportUrl = uploadResult.data.fileUrl;
+            labOrder.reportGeneratedAt = new Date();
+            await labOrder.save();
+
+            Logger.info('Lab report PDF uploaded', { labOrderId });
+            return {
+                success: true,
+                message: 'Lab report uploaded successfully',
+                data: {
+                    ...uploadResult.data,
+                    labOrder: labOrder
+                }
+            };
+        } catch (error) {
+            Logger.error('Error uploading lab report PDF', error);
+            if (error.message && error.message.includes('minimum free drive threshold')) {
+                return {
+                    success: false,
+                    message: 'Storage is full. Please contact system administrator to free up space.',
+                    error: 'STORAGE_FULL'
+                };
+            }
+            throw error;
+        }
+    }
+
+    static async validateLabOrder(labOrderId, userId, validationNotes) {
+        try {
+            const labOrder = await LabOrder.findById(labOrderId);
+
+            if (!labOrder) {
+                return { success: false, message: 'Lab order not found' };
+            }
+
+            labOrder.status = 'completed';
+            labOrder.actualCompletionDate = new Date();
+            labOrder.reportApprovedBy = userId;
+            labOrder.reportApprovedAt = new Date();
+            
+            labOrder.addStatusHistory(
+                'completed',
+                userId,
+                `Validated by technician: ${validationNotes || 'No notes'}`
+            );
+
+            await labOrder.save();
+
+            Logger.info('Lab order validated', { labOrderId, userId });
+            return {
+                success: true,
+                message: 'Lab order validated successfully',
+                data: labOrder
+            };
+        } catch (error) {
+            Logger.error('Error validating lab order', error);
             throw error;
         }
     }

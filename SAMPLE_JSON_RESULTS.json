@@ -1,0 +1,15 @@
+{
+  "tests": [
+    {
+      "testId": "test_1",
+      "results": {
+        "value": "12.5",
+        "unit": "mg/dL",
+        "referenceRange": "8.5-10.5"
+      },
+      "interpretation": "Slightly elevated",
+      "resultNotes": "Patient should follow up with doctor"
+    }
+  ],
+  "overallResults": "Test completed successfully with one elevated value"
+}

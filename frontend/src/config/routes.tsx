@@ -14,6 +14,8 @@ import { MyLabOrders } from '../presentation/pages/doctor/MyLabOrders';
 import { MyDocuments } from '../presentation/pages/doctor/MyDocuments';
 import { MyProfile } from '../presentation/pages/MyProfile';
 import { MyPrescriptions as PharmacistPrescriptions } from '../presentation/pages/pharmacist/MyPrescriptions';
+import { MyLabOrders as LabTechnicianLabOrders } from '../presentation/pages/lab-technician/MyLabOrders';
+import { LabTechnicianDashboard } from '../presentation/pages/lab-technician/Dashboard';
 import { ProtectedRoute } from '../presentation/components/organisms/ProtectedRoute';
 import { Sidebar } from '../presentation/components/organisms/Sidebar';
 import { useState } from 'react';
@@ -188,6 +190,30 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <div className="p-6">
             <PharmacistPrescriptions />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/lab-technician',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <LabTechnicianDashboard />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/lab-technician/orders',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <LabTechnicianLabOrders />
           </div>
         </DashboardLayout>
       </ProtectedRoute>

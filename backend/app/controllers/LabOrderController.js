@@ -345,20 +345,18 @@ class LabOrderController extends BaseController {
                 });
             }
 
-            const labOrder = labOrderResult.data;
+            const result = await LabOrderService.uploadLabResultsJSON(id, resultsData, userId);
 
-            for (const testResult of resultsData.tests) {
-                await LabOrderService.addTestResults(id, testResult.testId, {
-                    results: testResult.results,
-                    interpretation: testResult.interpretation,
-                    criticalValues: testResult.criticalValues,
-                    resultNotes: testResult.resultNotes
-                }, userId);
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
             }
 
             return this.handleSuccess(res, {
                 message: 'Lab results uploaded successfully',
-                data: { labOrderId: id }
+                data: result.data
             });
         } catch (error) {
             Logger.error('Error in uploadLabResultsJSON controller', error);
@@ -377,41 +375,18 @@ class LabOrderController extends BaseController {
                 });
             }
 
-            const labOrderResult = await LabOrderService.getLabOrderById(id);
-            if (!labOrderResult.success) {
+            const result = await LabOrderService.uploadLabReportPDF(id, req.file, req.body, req.user.userId);
+
+            if (!result.success) {
                 return this.handleError(res, {
-                    message: labOrderResult.message,
-                    statusCode: HTTP_STATUS.NOT_FOUND
-                });
-            }
-
-            const labOrder = labOrderResult.data;
-
-            const documentMetadata = {
-                patientId: labOrder.patientId._id || labOrder.patientId,
-                documentType: 'lab_report',
-                title: req.body.title || `Lab Report - ${labOrder.orderNumber}`,
-                description: req.body.description || `Lab report for order ${labOrder.orderNumber}`,
-                labOrderId: id,
-                category: 'laboratory'
-            };
-
-            const uploadResult = await DocumentService.uploadDocument(
-                req.file,
-                documentMetadata,
-                req.user.userId
-            );
-
-            if (!uploadResult.success) {
-                return this.handleError(res, {
-                    message: uploadResult.message,
+                    message: result.message,
                     statusCode: HTTP_STATUS.BAD_REQUEST
                 });
             }
 
             return this.handleSuccess(res, {
                 message: 'Lab report uploaded successfully',
-                data: uploadResult.data
+                data: result.data
             }, HTTP_STATUS.CREATED);
         } catch (error) {
             Logger.error('Error in uploadLabReportPDF controller', error);
@@ -425,12 +400,7 @@ class LabOrderController extends BaseController {
             const { validationNotes } = req.body;
             const userId = req.user.userId;
 
-            const result = await LabOrderService.updateLabOrderStatus(
-                id,
-                'completed',
-                userId,
-                `Validated by technician: ${validationNotes || 'No notes'}`
-            );
+            const result = await LabOrderService.validateLabOrder(id, userId, validationNotes);
 
             if (!result.success) {
                 return this.handleError(res, {
@@ -451,38 +421,112 @@ class LabOrderController extends BaseController {
 
     async getResultHistory(req, res) {
         try {
-            const { id } = req.params;
+            const { userId, role } = req.user;
+            
+            if (role !== 'lab_technician') {
+                return this.handleError(res, {
+                    message: 'Access denied',
+                    statusCode: HTTP_STATUS.FORBIDDEN
+                });
+            }
 
-            const result = await LabOrderService.getLabOrderById(id);
+            const Laboratory = (await import('../models/Laboratory.js')).default;
+            const laboratory = await Laboratory.findOne({
+                'technicians.userId': userId
+            });
+            
+            if (!laboratory) {
+                return this.handleError(res, {
+                    message: 'Lab technician not assigned to any laboratory',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+            
+            const result = await LabOrderService.getCompletedOrdersByLaboratory(laboratory._id);
 
             if (!result.success) {
                 return this.handleError(res, {
                     message: result.message,
-                    statusCode: HTTP_STATUS.NOT_FOUND
+                    statusCode: HTTP_STATUS.BAD_REQUEST
                 });
             }
 
-            const labOrder = result.data;
-
-            const history = {
-                orderNumber: labOrder.orderNumber,
-                statusHistory: labOrder.statusHistory || [],
-                tests: labOrder.tests.map(test => ({
-                    testName: test.testName,
-                    testCode: test.testCode,
-                    status: test.status,
-                    results: test.results,
-                    completedAt: test.completedAt,
-                    technician: test.technician
-                }))
-            };
-
             return this.handleSuccess(res, {
                 message: 'Result history retrieved successfully',
-                data: history
+                data: result.data
             });
         } catch (error) {
             Logger.error('Error in getResultHistory controller', error);
+            return this.handleError(res, error);
+        }
+    }
+
+    async getMyLabOrders(req, res) {
+        try {
+            const { userId, role } = req.user;
+            const { page, limit, status } = req.query;
+            
+            console.log('getMyLabOrders called with userId:', userId, 'role:', role);
+            
+            if (role !== 'lab_technician') {
+                console.log('Access denied - role is not lab_technician');
+                return this.handleError(res, {
+                    message: 'Access denied',
+                    statusCode: HTTP_STATUS.FORBIDDEN
+                });
+            }
+
+            const Laboratory = (await import('../models/Laboratory.js')).default;
+            console.log('Searching for laboratory with technician userId:', userId);
+            
+            const laboratory = await Laboratory.findOne({
+                'technicians.userId': userId
+            });
+            
+            console.log('Laboratory found:', !!laboratory);
+            if (laboratory) {
+                console.log('Laboratory name:', laboratory.name);
+                console.log('Technicians in lab:', laboratory.technicians.map(t => ({ name: t.name, userId: t.userId.toString() })));
+            } else {
+                // Debug: check all laboratories
+                const allLabs = await Laboratory.find({});
+                console.log('All laboratories:');
+                allLabs.forEach(lab => {
+                    console.log(`- ${lab.name}: technicians:`, lab.technicians.map(t => ({ name: t.name, userId: t.userId.toString() })));
+                });
+            }
+            
+            if (!laboratory) {
+                return this.handleError(res, {
+                    message: 'Lab technician not assigned to any laboratory',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+            
+            let filters = { laboratoryId: laboratory._id };
+            if (status) filters.status = status;
+
+            const result = await LabOrderService.getAllLabOrders(
+                filters,
+                parseInt(page) || 1,
+                parseInt(limit) || 10
+            );
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Lab orders retrieved successfully',
+                data: result.data,
+                pagination: result.pagination
+            });
+        } catch (error) {
+            console.error('Error in getMyLabOrders controller:', error);
+            Logger.error('Error in getMyLabOrders controller', error);
             return this.handleError(res, error);
         }
     }
@@ -500,7 +544,6 @@ class LabOrderController extends BaseController {
                 });
             }
 
-            // Return proper error response
             return this.handleError(res, {
                 message: 'Lab report not available yet',
                 statusCode: HTTP_STATUS.NOT_FOUND

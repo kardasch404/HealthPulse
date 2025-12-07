@@ -14,16 +14,41 @@ export const labOrderService = {
   
   getResults: (id: string) => axiosInstance.get(`/lab-orders/${id}/results`),
   
+  updateStatus: (id: string, status: string, reason?: string) => 
+    axiosInstance.patch(`/lab-orders/${id}/status`, { status, reason }),
+  
+  updateTestStatus: (orderId: string, testId: string, status: string, resultData?: any) => 
+    axiosInstance.patch(`/lab-orders/${orderId}/tests/${testId}/status`, { status, ...resultData }),
+  
+  uploadResults: (orderId: string, testId: string, results: any) => 
+    axiosInstance.post(`/lab-orders/${orderId}/tests/${testId}/results`, results),
+  
+  uploadResultsJSON: (id: string, resultsData: any) => 
+    axiosInstance.post(`/lab-orders/${id}/upload-results`, resultsData),
+  
+  uploadReportPDF: (id: string, file: File, metadata?: any) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    if (metadata?.title) formData.append('title', metadata.title);
+    if (metadata?.description) formData.append('description', metadata.description);
+    
+    return axiosInstance.post(`/lab-orders/${id}/upload-report`, formData, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    });
+  },
+  
+  validateOrder: (id: string, validationNotes: string) => 
+    axiosInstance.post(`/lab-orders/${id}/validate`, { validationNotes }),
+  
+  getResultHistory: () => axiosInstance.get('/lab-orders/result-history'),
+  
   downloadReport: async (id: string) => {
-    // First check if report exists with a regular request
     const checkResponse = await axiosInstance.get(`/lab-orders/${id}/report`);
     
-    // If we get here and it's JSON, it means no PDF is available
     if (checkResponse.data && typeof checkResponse.data === 'object' && !checkResponse.data.success) {
       throw new Error(checkResponse.data.error || checkResponse.data.message || 'Lab report not available');
     }
     
-    // If we get here, we should have a PDF, so request it as blob
     return await axiosInstance.get(`/lab-orders/${id}/report`, { responseType: 'blob' });
   },
   
