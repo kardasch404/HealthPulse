@@ -80,7 +80,7 @@ const prescriptionSchema = new mongoose.Schema({
     },
     status: {
         type: String,
-        enum: ['draft', 'active', 'dispensed', 'partially-dispensed', 'expired', 'cancelled'],
+        enum: ['draft', 'active', 'pending', 'assigned', 'in_preparation', 'ready_for_pickup', 'dispensed', 'partially-dispensed', 'expired', 'cancelled', 'unavailable'],
         default: 'draft'
     },
 

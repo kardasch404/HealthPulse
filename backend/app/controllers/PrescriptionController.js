@@ -215,6 +215,7 @@ class PrescriptionController extends BaseController {
         try {
             const { id } = req.params;
             const { status } = req.body;
+            const { userId, role } = req.user;
 
             if (!status) {
                 return this.handleError(res, {
@@ -223,7 +224,8 @@ class PrescriptionController extends BaseController {
                 });
             }
             
-            const result = await PrescriptionService.updateStatus(id, status);
+            const pharmacistId = role === 'pharmacist' ? userId : null;
+            const result = await PrescriptionService.updateStatus(id, status, pharmacistId);
 
             if (!result.success) {
                 return this.handleError(res, {
@@ -282,7 +284,22 @@ class PrescriptionController extends BaseController {
             } else if (role === 'patient') {
                 filters.patientId = userId;
             } else if (role === 'pharmacist') {
-                filters.pharmacyId = req.user.pharmacyId || req.query.pharmacyId;
+                // Find the pharmacy where this pharmacist works
+                const Pharmacy = (await import('../models/Pharmacy.js')).default;
+                const pharmacy = await Pharmacy.findOne({
+                    'pharmacists.userId': userId
+                });
+                
+                if (pharmacy) {
+                    filters.pharmacyId = pharmacy._id;
+                } else {
+                    // If pharmacist is not assigned to any pharmacy, return empty results
+                    return this.handleSuccess(res, {
+                        message: 'No prescriptions found - pharmacist not assigned to any pharmacy',
+                        data: [],
+                        pagination: { page: 1, limit: 10, total: 0, pages: 0 }
+                    });
+                }
             }
             
             if (status) filters.status = status;
@@ -378,6 +395,56 @@ class PrescriptionController extends BaseController {
                 data: result.data
             });
         } catch (error) {
+            return this.handleError(res, error);
+        }
+    }
+
+    async getDispensingHistory(req, res) {
+        try {
+            const { userId, role } = req.user;
+            console.log('getDispensingHistory called by user:', userId, 'role:', role);
+            
+            if (role !== 'pharmacist') {
+                return this.handleError(res, {
+                    message: 'Access denied',
+                    statusCode: HTTP_STATUS.FORBIDDEN
+                });
+            }
+
+            const Pharmacy = (await import('../models/Pharmacy.js')).default;
+            const pharmacy = await Pharmacy.findOne({
+                'pharmacists.userId': userId
+            });
+            
+            console.log('Found pharmacy for pharmacist:', pharmacy ? pharmacy.name : 'none');
+            
+            if (!pharmacy) {
+                // Try to get all dispensed prescriptions for debugging
+                const allDispensed = await PrescriptionService.getAllDispensedPrescriptions();
+                console.log('All dispensed prescriptions:', allDispensed);
+                
+                return this.handleError(res, {
+                    message: 'Pharmacist not assigned to any pharmacy',
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+            
+            const result = await PrescriptionService.getDispensingHistory(pharmacy._id);
+            console.log('Dispensing history result:', result);
+
+            if (!result.success) {
+                return this.handleError(res, {
+                    message: result.message,
+                    statusCode: HTTP_STATUS.BAD_REQUEST
+                });
+            }
+
+            return this.handleSuccess(res, {
+                message: 'Dispensing history retrieved successfully',
+                data: result.data
+            });
+        } catch (error) {
+            console.error('Error in getDispensingHistory:', error);
             return this.handleError(res, error);
         }
     }

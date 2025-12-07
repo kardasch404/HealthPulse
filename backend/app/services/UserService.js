@@ -1,12 +1,14 @@
 import User from '../models/User.js';
 import Role from '../models/Role.js';
+import Pharmacy from '../models/Pharmacy.js';
+import Laboratory from '../models/Laboratory.js';
 import bcrypt from 'bcrypt';
 import Logger from '../logs/Logger.js';
 
 class UserService {
     async createUser(userData) {
         try {
-            const { fname, lname, email, password, phone, roleId } = userData;
+            const { fname, lname, email, password, phone, roleId, pharmacyId, laboratoryId } = userData;
 
             const existingUser = await User.findOne({ email });
             if (existingUser) {
@@ -26,9 +28,58 @@ class UserService {
 
             await user.save();
 
+            // Handle pharmacy assignment for pharmacists
+            if (pharmacyId) {
+                const role = await Role.findById(roleId);
+                if (role && role.name === 'pharmacist') {
+                    const pharmacy = await Pharmacy.findById(pharmacyId);
+                    if (pharmacy) {
+                        // Add pharmacist to pharmacy's pharmacists array
+                        const existingPharmacist = pharmacy.pharmacists.find(p => p.userId?.toString() === user._id.toString());
+                        if (!existingPharmacist) {
+                            pharmacy.pharmacists.push({
+                                userId: user._id,
+                                name: `${user.fname} ${user.lname}`,
+                                phone: user.phone,
+                                email: user.email,
+                                joinedDate: new Date()
+                            });
+                            await pharmacy.save();
+                        }
+                    }
+                }
+            }
+
+            // Handle laboratory assignment for lab technicians
+            if (laboratoryId) {
+                const role = await Role.findById(roleId);
+                if (role && role.name === 'lab_technician') {
+                    const laboratory = await Laboratory.findById(laboratoryId);
+                    if (laboratory) {
+                        // Add technician to laboratory's staff array
+                        const existingTechnician = laboratory.staff?.find(t => t.userId?.toString() === user._id.toString());
+                        if (!existingTechnician) {
+                            if (!laboratory.staff) laboratory.staff = [];
+                            laboratory.staff.push({
+                                userId: user._id,
+                                name: `${user.fname} ${user.lname}`,
+                                role: 'lab_technician',
+                                phone: user.phone,
+                                email: user.email,
+                                joinedDate: new Date(),
+                                isActive: true
+                            });
+                            await laboratory.save();
+                        }
+                    }
+                }
+            }
+
             Logger.info('User created successfully', {
                 userId: user._id,
-                email: user.email
+                email: user.email,
+                pharmacyId,
+                laboratoryId
             });
 
             return user;

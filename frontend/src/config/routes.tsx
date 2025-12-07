@@ -13,6 +13,7 @@ import { MyPrescriptions } from '../presentation/pages/doctor/MyPrescriptions';
 import { MyLabOrders } from '../presentation/pages/doctor/MyLabOrders';
 import { MyDocuments } from '../presentation/pages/doctor/MyDocuments';
 import { MyProfile } from '../presentation/pages/MyProfile';
+import { MyPrescriptions as PharmacistPrescriptions } from '../presentation/pages/pharmacist/MyPrescriptions';
 import { ProtectedRoute } from '../presentation/components/organisms/ProtectedRoute';
 import { Sidebar } from '../presentation/components/organisms/Sidebar';
 import { useState } from 'react';
@@ -175,6 +176,18 @@ export const router = createBrowserRouter([
         <DashboardLayout>
           <div className="p-6">
             <MyProfile />
+          </div>
+        </DashboardLayout>
+      </ProtectedRoute>
+    ),
+  },
+  {
+    path: '/dashboard/pharmacist/prescriptions',
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout>
+          <div className="p-6">
+            <PharmacistPrescriptions />
           </div>
         </DashboardLayout>
       </ProtectedRoute>
