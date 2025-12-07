@@ -212,6 +212,43 @@ const labOrderSchema = new mongoose.Schema({
     },
     criticalResultsNotifiedAt: Date,
 
+    // Uploaded Files
+    uploadedReports: [{
+        documentId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'Document'
+        },
+        fileName: String,
+        fileUrl: String,
+        uploadedAt: {
+            type: Date,
+            default: Date.now
+        },
+        uploadedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        },
+        fileSize: Number,
+        mimeType: String
+    }],
+    
+    uploadedResults: [{
+        type: {
+            type: String,
+            enum: ['json', 'pdf', 'xml'],
+            default: 'json'
+        },
+        data: mongoose.Schema.Types.Mixed,
+        uploadedAt: {
+            type: Date,
+            default: Date.now
+        },
+        uploadedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User'
+        }
+    }],
+
     // Audit Trail
     statusHistory: [{
         status: String,

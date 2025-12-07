@@ -317,13 +317,53 @@ const laboratorySchema = new Schema({
     
     role: {
       type: String,
-      enum: ['lab_technician'],
+      enum: ['lab_technician', 'lab_manager', 'pathologist'],
       required: true
     },
     
     phone: String,
     
     email: String,
+    
+    joinedDate: {
+      type: Date,
+      default: Date.now
+    },
+    
+    isActive: {
+      type: Boolean,
+      default: true
+    }
+  }],
+  
+  // Lab Technicians (similar to pharmacists in Pharmacy model)
+  technicians: [{
+    userId: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    
+    name: {
+      type: String,
+      required: true
+    },
+    
+    licenseNumber: String,
+    
+    specialization: [{
+      type: String,
+      enum: [
+        'Clinical Chemistry',
+        'Hematology', 
+        'Microbiology',
+        'Immunology',
+        'Molecular Biology',
+        'Pathology',
+        'Cytogenetics',
+        'Toxicology'
+      ]
+    }],
     
     joinedDate: {
       type: Date,

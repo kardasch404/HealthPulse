@@ -13,7 +13,6 @@ const patientSchema = z.object({
   lname: z.string().min(2, 'Last name required'),
   email: z.string().email('Invalid email'),
   phone: z.string().regex(/^(\+212|0)[5-7]\d{8}$/, 'Invalid Moroccan phone'),
-  password: z.string().min(6, 'Password must be at least 6 characters'),
 });
 
 type PatientFormData = z.infer<typeof patientSchema>;
@@ -28,21 +27,14 @@ export const MyPatients = () => {
   const [selectedPatient, setSelectedPatient] = useState<any>(null);
   const [medicalHistory, setMedicalHistory] = useState<any>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [patientRoleId, setPatientRoleId] = useState<string>('');
-
-  useEffect(() => {
-    fetchPatients();
-    const storedRoleId = localStorage.getItem('patientRoleId');
-    if (storedRoleId) {
-      setPatientRoleId(storedRoleId);
-    } else {
-      setPatientRoleId('6909d3cf66d09c1635b62a15');
-    }
-  }, []);
 
   const { register, handleSubmit, formState: { errors }, reset } = useForm<PatientFormData>({
     resolver: zodResolver(patientSchema),
   });
+
+  useEffect(() => {
+    fetchPatients();
+  }, []);
 
   useEffect(() => {
     if (searchTerm) {
@@ -68,7 +60,7 @@ export const MyPatients = () => {
     } catch (error) {
       console.error('Error fetching patients:', error);
       setPatients([]);
-      setFilteredPatients([]);
+      setFilteredPatients([]);  
     } finally {
       setLoading(false);
     }
@@ -76,15 +68,7 @@ export const MyPatients = () => {
 
   const onSubmit = async (data: PatientFormData) => {
     try {
-      if (!patientRoleId) {
-        alert('Patient role not configured');
-        return;
-      }
-      const payload = {
-        ...data,
-        roleId: patientRoleId,
-      };
-      await patientService.create(payload);
+      await patientService.create(data);
       reset();
       setShowCreateModal(false);
       fetchPatients();
@@ -115,6 +99,8 @@ export const MyPatients = () => {
       alert('Failed to load medical history');
     }
   };
+
+
 
   return (
     <div className="space-y-6">
@@ -188,7 +174,6 @@ export const MyPatients = () => {
           </div>
           <Input label="Email" type="email" placeholder="patient@example.com" error={errors.email?.message} {...register('email')} />
           <Input label="Phone" type="tel" placeholder="0612345678" error={errors.phone?.message} {...register('phone')} />
-          <Input label="Password" type="password" placeholder="Enter password" error={errors.password?.message} {...register('password')} />
           <div className="flex justify-end space-x-3 pt-4">
             <Button type="button" variant="outline" onClick={() => { setShowCreateModal(false); reset(); }}>Cancel</Button>
             <Button type="submit">Create Patient</Button>

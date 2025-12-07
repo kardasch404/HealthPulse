@@ -19,6 +19,11 @@ const userSchema = new mongoose.Schema({
         ref: 'Role',
         required: true
     },
+    role: {
+        type: String,
+        required: true,
+        enum: ['admin', 'doctor', 'nurse', 'reception', 'patient', 'pharmacist', 'lab_technician']
+    },
     fname: {
         type: String,
         required: true,
@@ -51,7 +56,7 @@ userSchema.methods.verifyPassword = async function(password) {
 
 userSchema.methods.generateAuthToken = function() {
     return jwt.sign(
-        { id: this._id, email: this.email, role: this.roleId },
+        { userId: this._id, email: this.email, role: this.role },
         process.env.JWT_SECRET,
         { expiresIn: process.env.JWT_EXPIRES_IN || '7d' }
     );

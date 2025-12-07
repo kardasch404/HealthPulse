@@ -30,9 +30,21 @@ router.get(
     '/my',
     checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
     (req, res) => {
-        req.query.doctorId = req.user.userId;
-        return labOrderController.getAllLabOrders(req, res);
+        if (req.user.role === 'doctor') {
+            req.query.doctorId = req.user.userId;
+            return labOrderController.getAllLabOrders(req, res);
+        } else if (req.user.role === 'lab_technician') {
+            return labOrderController.getMyLabOrders(req, res);
+        } else {
+            return labOrderController.getAllLabOrders(req, res);
+        }
     }
+);
+
+router.get(
+    '/result-history',
+    checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
+    (req, res) => labOrderController.getResultHistory(req, res)
 );
 
 router.get(
@@ -106,11 +118,7 @@ router.post(
     (req, res) => labOrderController.validateLabOrder(req, res)
 );
 
-router.get(
-    '/:id/result-history',
-    checkPermission(PERMISSIONS.VIEW_LAB_ORDERS),
-    (req, res) => labOrderController.getResultHistory(req, res)
-);
+
 
 router.get(
     '/:id/report',
